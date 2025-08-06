@@ -23,6 +23,23 @@ kubectl version --client # kubectl 1.27+
 helm version            # Helm 3.12+
 ```
 
+### Automated Script
+
+For a fully automated setup, you can use the provided script. This will start Minikube, enable the necessary addons, and open the Kubernetes dashboard and a tunnel for external access.
+
+**To run the script:**
+
+```bash
+./scripts/setup_minikube.sh
+```
+
+This script performs the following actions:
+- Starts Minikube with 4 CPUs and 8GB of memory.
+- Enables `ingress`, `dns`, `metrics-server`, and `dashboard` addons.
+- Opens the Kubernetes dashboard in your browser.
+- Starts `minikube tunnel` to allow access to services of type `LoadBalancer`.
+
+---
 ## Minikube Cluster Setup
 
 ### 1. Create Setup Script
