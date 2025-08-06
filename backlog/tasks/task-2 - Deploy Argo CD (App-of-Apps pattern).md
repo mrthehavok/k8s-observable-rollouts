@@ -1,7 +1,7 @@
 ---
 id: task-2
 title: "Deploy Argo CD (App-of-Apps pattern)"
-status: "To Do"
+status: "In Progress"
 depends_on: ["task-1"]
 created: 2025-01-08
 updated: 2025-01-08
@@ -24,7 +24,7 @@ Deploy Argo CD to the Minikube cluster using the App-of-Apps pattern. Configure 
 
 ## Session History
 
-<!-- Update as work progresses -->
+- 2025-08-06T16:36:08Z: Branch `feat/task-2-argocd-deploy` created, initial manifests and scripts scaffolded.
 
 ## Decisions Made
 
@@ -32,7 +32,11 @@ Deploy Argo CD to the Minikube cluster using the App-of-Apps pattern. Configure 
 
 ## Files Modified
 
-<!-- Track all file changes -->
+- `argocd/namespace.yaml`
+- `argocd/install.yaml`
+- `argocd-apps/root-app.yaml`
+- `scripts/deploy_argocd.sh`
+- `docs/infrastructure-setup.md`
 
 ## Blockers
 
@@ -40,10 +44,9 @@ Deploy Argo CD to the Minikube cluster using the App-of-Apps pattern. Configure 
 
 ## Next Steps
 
-- Create argocd-apps/ directory structure
-- Define root application manifest
-- Configure repository credentials
-- Set up webhook for automatic sync (optional)
+- Configure repository credentials in `root-app.yaml`.
+- Set up webhook for automatic sync (optional).
+- Validate manifests with `kubectl apply --dry-run=client`.
 
 ## Notes
 
