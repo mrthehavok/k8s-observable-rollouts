@@ -15,11 +15,10 @@ echo "Argo CD deployed ✔"
 echo "⏳ Waiting for Argo CD pods to be ready..."
 kubectl wait --for=condition=ready pod --all -n argocd --timeout=300s
 
-echo "⏳ Waiting for initial admin secret to be created..."
-kubectl wait --for=condition=exists secret/argocd-initial-admin-secret -n argocd --timeout=120s
-
 echo "🔑 Argo CD initial admin password:"
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+argocd admin initial-password -n argocd
+echo "✅ Argo CD is ready."
+
 echo ""
 echo "🚀 You can now access the Argo CD UI by running:"
 echo "kubectl -n argocd port-forward svc/argocd-server 8080:443"
