@@ -9,19 +9,17 @@ updated: 2025-01-08
 
 ## Description
 
-Configure Argo Rollouts to manage progressive delivery of the sample-api service. Implement multiple rollout strategies including canary, blue-green, and experiment-based deployments. Integrate with the Helm chart to support seamless transitions between deployment methods.
+Configure Argo Rollouts to manage progressive delivery of the sample-api service. Implement canary and blue-green rollout strategies.
 
 ## Acceptance Criteria
 
-- [ ] Argo Rollouts controller deployed and operational
-- [ ] Rollout resource defined for sample-api service
-- [ ] Canary strategy configured with traffic splitting
-- [ ] Blue-green strategy configured with preview service
-- [ ] Experiment strategy configured for A/B testing
-- [ ] Integration with ingress controller for traffic management
-- [ ] Rollback triggers and thresholds defined
-- [ ] Promotion policies (manual/automatic) configured
-- [ ] Dashboard access configured for monitoring rollouts
+- [ ] Argo Rollouts controller deployed and operational.
+- [ ] `Rollout` resource defined for the sample-api service.
+- [ ] Canary strategy configured with traffic splitting.
+- [ ] Blue-green strategy configured with a preview service.
+- [ ] Integration with the ingress controller for traffic management.
+- [ ] Basic rollback and promotion policies are configured.
+- [ ] Rollout dashboard is accessible for monitoring.
 
 ## Session History
 

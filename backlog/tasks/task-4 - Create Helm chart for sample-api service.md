@@ -9,20 +9,17 @@ updated: 2025-01-08
 
 ## Description
 
-Create a production-ready Helm chart for the FastAPI sample microservice. The chart should follow Helm best practices, support multiple deployment environments, and integrate seamlessly with Argo CD and Argo Rollouts.
+Create a simplified Helm chart for the FastAPI sample microservice for a single environment. The chart should follow basic Helm best practices and integrate with Argo CD and Argo Rollouts.
 
 ## Acceptance Criteria
 
 - [ ] Helm chart structure follows official best practices
-- [ ] Values files for dev, staging, and prod environments
-- [ ] Deployment manifest with proper resource limits/requests
-- [ ] Service manifest with appropriate type and ports
-- [ ] ConfigMap for non-sensitive configuration
-- [ ] Secret management strategy documented
-- [ ] HorizontalPodAutoscaler configured
-- [ ] NetworkPolicy for security
-- [ ] Chart tested with helm lint and helm test
-- [ ] README.md with comprehensive documentation
+- [ ] A single `values.yaml` for configuration.
+- [ ] Deployment manifest with basic resource limits/requests.
+- [ ] Service manifest to expose the application.
+- [ ] ConfigMap for application configuration.
+- [ ] Chart is installable and passes `helm lint`.
+- [ ] README.md with basic usage instructions.
 
 ## Session History
 
@@ -42,15 +39,12 @@ Create a production-ready Helm chart for the FastAPI sample microservice. The ch
 
 ## Next Steps
 
-- Define chart metadata and dependencies
-- Create templates for all Kubernetes resources
-- Implement value validation using JSON schema
-- Add helm hooks for pre/post deployment tasks
+- Define chart metadata.
+- Create templates for Deployment, Service, and ConfigMap.
+- Ensure chart supports a `Rollout` resource as an alternative to `Deployment`.
 
 ## Notes
 
-- Use Helm 3.x features exclusively
-- Consider using library charts for common patterns
-- Implement proper RBAC if service needs cluster access
-- Ensure chart supports both Deployment and Rollout resources
-- Follow semantic versioning for chart versions
+- Use Helm 3.x features.
+- The chart will be for a single-environment deployment (Minikube).
+- Ensure chart supports both Deployment and Rollout resources.
