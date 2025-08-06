@@ -29,24 +29,24 @@ Install and configure a local Minikube cluster for development and testing. This
 
 ## Decisions Made
 
-<!-- Document key implementation decisions -->
+- Used the Docker driver for Minikube for better performance and compatibility.
+- Allocated 4 CPUs and 8GB of RAM to ensure sufficient resources for the full stack.
+- Enabled `ingress`, `dns`, and `metrics-server` addons by default to support the project's requirements.
 
 ## Files Modified
 
-<!-- Track all file changes -->
+- `scripts/setup_minikube.sh` (created)
+- `docs/infrastructure-setup.md` (modified)
 
 ## Blockers
 
-<!-- Document any blockers encountered -->
+- None.
 
 ## Next Steps
 
-- Determine optimal Minikube driver (Docker, KVM2, VirtualBox)
-- Configure resource allocation based on system capabilities
-- Create setup script for reproducible installation
+- The next step is to proceed with `task-2`, which involves deploying Argo CD to the newly created cluster.
 
 ## Notes
 
-- Consider using Docker driver for better performance on Linux/Mac
-- May need to adjust resource allocation based on available system resources
-- Enable feature gates for beta features if needed for Argo Rollouts
+- The setup script provides a reproducible way to create the local cluster.
+- The cluster is now ready for the deployment of the application stack.
