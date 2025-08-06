@@ -20,6 +20,7 @@ Configure Argo Rollouts to manage progressive delivery of the sample-api service
 - [ ] Integration with the ingress controller for traffic management.
 - [ ] Basic rollback and promotion policies are configured.
 - [ ] Rollout dashboard is accessible for monitoring.
+- [ ] A basic `AnalysisTemplate` is configured for automated canary analysis (e.g., checking error rates).
 
 ## Session History
 
@@ -39,10 +40,9 @@ Configure Argo Rollouts to manage progressive delivery of the sample-api service
 
 ## Next Steps
 
-- Define rollout strategies in separate YAML files
-- Configure traffic management with NGINX ingress
-- Set up webhook notifications for rollout events
-- Create reusable templates for common patterns
+- Define rollout strategies in the Helm chart.
+- Configure traffic management with NGINX ingress.
+- Create a basic `AnalysisTemplate` for automated analysis.
 
 ## Notes
 

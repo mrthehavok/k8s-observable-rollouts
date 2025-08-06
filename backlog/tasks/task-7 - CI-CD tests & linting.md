@@ -1,5 +1,5 @@
 ---
-id: task-8
+id: task-7
 title: "Implement CI/CD pipeline with tests & linting"
 status: "To Do"
 depends_on: ["task-3", "task-4"]
