@@ -273,19 +273,25 @@ spec:
 
 ## Deploying Argo CD
 
-Once the Minikube cluster is running, deploy Argo CD using the App-of-Apps pattern with the provided script.
+Once the Minikube cluster is running, deploy Argo CD using the App-of-Apps pattern. The process is bootstrapped by a single script that creates the `root` application in the cluster. This `root` application is responsible for deploying Argo CD itself, making the entire setup managed by GitOps.
 
-### 1. Run the Deployment Script
+### 1. Run the Bootstrap Script
 
-This script applies the necessary manifests to install Argo CD and set up the root application.
+This script applies the `root-app.yaml` manifest, which points to the `argocd-apps/` directory in this repository.
 
 ```bash
 ./scripts/deploy_argocd.sh
 ```
 
-### 2. Access the Argo CD UI
+This command will create the `root` application. Argo CD will then automatically sync this application, which in turn will deploy the `argocd` application from the official Helm chart.
 
-To access the Argo CD dashboard, you need to port-forward the `argocd-server` service.
+### 2. Monitor the Installation
+
+It may take a few minutes for all Argo CD components to be deployed and become healthy. You can monitor the progress in the Argo CD UI.
+
+### 3. Access the Argo CD UI
+
+To access the Argo CD dashboard, port-forward the `argocd-server` service:
 
 ```bash
 kubectl -n argocd port-forward svc/argocd-server 8080:443
@@ -293,7 +299,7 @@ kubectl -n argocd port-forward svc/argocd-server 8080:443
 
 You can then access the UI at `https://localhost:8080`.
 
-The initial password for the `admin` user can be retrieved with the following command:
+The initial password for the `admin` user can be retrieved with:
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
