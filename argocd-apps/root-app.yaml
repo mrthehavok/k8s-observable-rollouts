@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/example/k8s-observable-rollouts.git # AIDEV-TODO: Replace with correct repository URL (task-2)
+    repoURL: https://github.com/mrthehavok/k8s-observable-rollouts.git
     path: argocd-apps
     targetRevision: HEAD
   destination:
@@ -31,7 +31,7 @@ spec:
 # spec:
 #   project: default
 #   source:
-#     repoURL: https://github.com/example/k8s-observable-rollouts.git # AIDEV-TODO: Replace with correct repository URL (task-2)
+#     repoURL: https://github.com/mrthehavok/k8s-observable-rollouts.git
 #     path: helm-charts/example-app
 #     targetRevision: HEAD
 #   destination:
