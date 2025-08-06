@@ -271,6 +271,33 @@ spec:
           port: 8000
 ```
 
+## Deploying Argo CD
+
+Once the Minikube cluster is running, deploy Argo CD using the App-of-Apps pattern with the provided script.
+
+### 1. Run the Deployment Script
+
+This script applies the necessary manifests to install Argo CD and set up the root application.
+
+```bash
+./scripts/deploy_argocd.sh
+```
+
+### 2. Access the Argo CD UI
+
+To access the Argo CD dashboard, you need to port-forward the `argocd-server` service.
+
+```bash
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+```
+
+You can then access the UI at `https://localhost:8080`.
+
+The initial password for the `admin` user can be retrieved with the following command:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+```
 ## NGINX Ingress Configuration
 
 ### 1. Custom NGINX Configuration

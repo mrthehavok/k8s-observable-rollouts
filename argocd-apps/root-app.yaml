@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/example/k8s-observable-rollouts.git # AIDEV-TODO: Replace with correct repository URL (task-2)
+    path: argocd-apps
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# --- Example Child App (commented out) ---
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: example-app
+#   namespace: argocd
+# spec:
+#   project: default
+#   source:
+#     repoURL: https://github.com/example/k8s-observable-rollouts.git # AIDEV-TODO: Replace with correct repository URL (task-2)
+#     path: helm-charts/example-app
+#     targetRevision: HEAD
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: example-app
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#     syncOptions:
+#     - CreateNamespace=true
