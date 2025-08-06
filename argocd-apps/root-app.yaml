@@ -8,9 +8,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/mrthehavok/k8s-observable-rollouts.git
+    repoURL: https://github.com/mrthehavok/k8s-observable-rollouts
     path: argocd-apps
-    targetRevision: HEAD
+    targetRevision: main
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
@@ -31,7 +31,7 @@ spec:
 # spec:
 #   project: default
 #   source:
-#     repoURL: https://github.com/mrthehavok/k8s-observable-rollouts.git
+#     repoURL: https://github.com/mrthehavok/k8s-observable-rollouts
 #     path: helm-charts/example-app
 #     targetRevision: HEAD
 #   destination:
