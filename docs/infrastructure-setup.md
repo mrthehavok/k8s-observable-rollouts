@@ -34,12 +34,14 @@ For a fully automated setup, you can use the provided script. This will start Mi
 ```
 
 This script performs the following actions:
+
 - Starts Minikube with 4 CPUs and 8GB of memory.
 - Enables `ingress`, `dns`, `metrics-server`, and `dashboard` addons.
 - Opens the Kubernetes dashboard in your browser.
 - Starts `minikube tunnel` to allow access to services of type `LoadBalancer`.
 
 ---
+
 ## Minikube Cluster Setup
 
 ### 1. Create Setup Script
@@ -273,11 +275,11 @@ spec:
 
 ## Deploying Argo CD
 
-Once the Minikube cluster is running, deploy Argo CD using the App-of-Apps pattern. The process is bootstrapped by a single script that creates the `root` application in the cluster. This `root` application is responsible for deploying Argo CD itself, making the entire setup managed by GitOps.
+Once the Minikube cluster is running, deploy Argo CD using the App-of-Apps pattern with the provided script.
 
 ### 1. Run the Bootstrap Script
 
-This script applies the `root-app.yaml` manifest, which points to the `argocd-apps/` directory in this repository.
+This script applies the necessary manifests to install Argo CD and set up the root application.
 
 ```bash
 ./scripts/deploy_argocd.sh
@@ -304,6 +306,7 @@ The initial password for the `admin` user can be retrieved with:
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 ```
+
 ## NGINX Ingress Configuration
 
 ### 1. Custom NGINX Configuration
