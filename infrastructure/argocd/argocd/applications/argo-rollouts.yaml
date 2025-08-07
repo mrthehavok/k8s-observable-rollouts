@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd
+  name: argo-rollouts
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -9,23 +9,25 @@ spec:
   project: default
   source:
     repoURL: https://argoproj.github.io/argo-helm
-    chart: argo-cd
-    targetRevision: "6.11.0" # Pinning to a specific stable version
+    chart: argo-rollouts
+    targetRevision: 2.32.5
     helm:
-      releaseName: argocd
-      valuesObject:
-        installCRDs: false
-        controller:
-          replicas: 1
-        server:
-          replicas: 1
-        repoServer:
-          replicas: 1
-        redis:
+      values: |
+        dashboard:
           enabled: true
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - rollouts.local
+        controller:
+          metrics:
+            enabled: true
+            serviceMonitor:
+              enabled: true
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: argo-rollouts
   syncPolicy:
     automated:
       prune: true
