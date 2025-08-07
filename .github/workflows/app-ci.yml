@@ -31,7 +31,6 @@ jobs:
           pip install -r requirements.txt
           # Install dev tools required for linting
           pip install flake8 black isort
-
       - name: Run linting
         run: |
           cd apps/sample-api
