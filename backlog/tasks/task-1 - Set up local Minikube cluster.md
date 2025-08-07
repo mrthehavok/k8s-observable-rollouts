@@ -4,7 +4,7 @@ title: "Set up local Minikube cluster"
 status: "Done"
 depends_on: []
 created: 2025-01-08
-updated: 2025-01-08
+updated: 2025-08-07
 ---
 
 ## Description
@@ -26,12 +26,14 @@ Install and configure a local Minikube cluster for development and testing. This
 - 2025-08-06T16:17:23Z: Started work on task.
 - 2025-08-06T16:20:58Z: Verified cluster is running and all addons are operational.
 - 2025-08-06T16:06:25Z: Agent started work on local Minikube setup.
+- 2025-08-07 15:10: Disabled ingress-dns addon; updated setup_minikube.sh; clarified that minikube tunnel is the access method.
 
 ## Decisions Made
 
 - Used the Docker driver for Minikube for better performance and compatibility.
 - Allocated 4 CPUs and 8GB of RAM to ensure sufficient resources for the full stack.
 - Enabled `ingress`, `dns`, and `metrics-server` addons by default to support the project's requirements.
+- DNS addon redundant; rely on minikube tunnel for LoadBalancer exposure.
 
 ## Files Modified
 
@@ -44,7 +46,7 @@ Install and configure a local Minikube cluster for development and testing. This
 
 ## Next Steps
 
-- The next step is to proceed with `task-2`, which involves deploying Argo CD to the newly created cluster.
+- None – task closed.
 
 ## Notes
 
