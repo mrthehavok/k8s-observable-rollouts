@@ -19,6 +19,8 @@ spec:
           replicas: 1
         server:
           replicas: 1
+          podLabels:
+            app.kubernetes.io/instance: argocd
         repoServer:
           replicas: 1
         redis:

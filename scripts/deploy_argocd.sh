@@ -21,4 +21,5 @@ echo "✅ Argo CD is ready."
 
 echo ""
 echo "🚀 You can now access the Argo CD UI by running:"
-echo "kubectl -n argocd port-forward svc/argocd-server 8080:443"
+kubectl -n argocd port-forward svc/argocd-server 8080:443 &
+echo "Then open your browser and go to http://localhost:8080"
