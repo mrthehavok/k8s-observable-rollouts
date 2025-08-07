@@ -1,4 +1,5 @@
-from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info, generate_latest
+from prometheus_client import (REGISTRY, Counter, Gauge, Histogram, Info,
+                               generate_latest)
 
 
 class MetricsRegistry:

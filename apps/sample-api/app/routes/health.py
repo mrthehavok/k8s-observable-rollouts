@@ -4,7 +4,8 @@ import psutil
 from fastapi import APIRouter, Response, status
 
 from app.config import settings
-from app.models.health import ComponentHealth, HealthCheck, HealthStatus, ReadinessCheck
+from app.models.health import (ComponentHealth, HealthCheck, HealthStatus,
+                               ReadinessCheck)
 
 router = APIRouter()
 
