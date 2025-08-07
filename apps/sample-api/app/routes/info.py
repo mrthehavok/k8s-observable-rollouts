@@ -1,13 +1,13 @@
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
 from datetime import datetime
-import json
 
-from app.models.info import VersionInfo, AppInfo
+from fastapi import APIRouter
+
 from app.config import settings
-from app.version import version_info, changelog
+from app.models.info import AppInfo, VersionInfo
+from app.version import changelog, version_info
 
 router = APIRouter()
+
 
 @router.get("/version", response_model=VersionInfo)
 async def get_version():
@@ -17,8 +17,9 @@ async def get_version():
         build_number=version_info.build_number,
         git_commit=version_info.git_commit,
         git_branch=version_info.git_branch,
-        environment=settings.APP_ENV
+        environment=settings.APP_ENV,
     )
+
 
 @router.get("/info", response_model=AppInfo)
 async def get_info():
@@ -31,28 +32,31 @@ async def get_info():
         features={
             "slow_endpoint": settings.ENABLE_SLOW_ENDPOINT,
             "metrics": True,
-            "health_checks": True
+            "health_checks": True,
         },
         links={
             "health": "/health/ready",
             "metrics": settings.METRICS_PATH,
             "docs": "/docs",
-            "version_page": "/html"
-        }
+            "version_page": "/html",
+        },
     )
+
 
 @router.get("/changelog")
 async def get_changelog():
     """Return application changelog"""
     return {
         "version": version_info.version,
-        "changes": changelog.get_changes(version_info.version)
+        "changes": changelog.get_changes(version_info.version),
     }
+
 
 def get_uptime() -> str:
     """Calculate application uptime"""
     from app.main import app
-    if hasattr(app, 'startup_time'):
+
+    if hasattr(app, "startup_time"):
         delta = datetime.utcnow() - app.startup_time
         return str(delta)
     return "unknown"

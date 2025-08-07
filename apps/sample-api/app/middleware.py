@@ -1,4 +1,5 @@
 import time
+
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -8,7 +9,9 @@ from app.metrics import metrics_registry
 
 
 class RequestMetricsMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         start_time = time.time()
         metrics_registry.active_requests.inc()
 

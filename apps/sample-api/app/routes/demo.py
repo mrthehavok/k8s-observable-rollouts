@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException, Query
 import asyncio
 import random
 from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Query
 
 from app.config import settings
 from app.metrics import metrics_registry
 
 router = APIRouter()
+
 
 @router.get("/slow")
 async def slow_endpoint(
@@ -22,25 +24,23 @@ async def slow_endpoint(
 
     # Track slow request
     metrics_registry.business_operations.labels(
-        operation="slow_request",
-        status="started"
+        operation="slow_request", status="started"
     ).inc()
 
     await asyncio.sleep(actual_delay)
 
     metrics_registry.business_operations.labels(
-        operation="slow_request",
-        status="completed"
+        operation="slow_request", status="completed"
     ).inc()
 
-    return {
-        "message": f"Response after {actual_delay} seconds",
-        "delay": actual_delay
-    }
+    return {"message": f"Response after {actual_delay} seconds", "delay": actual_delay}
+
 
 @router.get("/error")
 async def error_endpoint(
-    rate: Optional[float] = Query(None, ge=0, le=100, description="Error rate percentage")
+    rate: Optional[float] = Query(
+        None, ge=0, le=100, description="Error rate percentage"
+    )
 ):
     """
     Simulate errors based on configured or provided error rate.
@@ -50,33 +50,31 @@ async def error_endpoint(
     if random.random() * 100 < error_rate:
         metrics_registry.track_error("simulated_error")
         raise HTTPException(
-            status_code=500,
-            detail=f"Simulated error (rate: {error_rate}%)"
+            status_code=500, detail=f"Simulated error (rate: {error_rate}%)"
         )
 
-    return {
-        "message": "Success",
-        "error_rate": error_rate
-    }
+    return {"message": "Success", "error_rate": error_rate}
+
 
 @router.get("/cpu")
 async def cpu_intensive(
-    duration: int = Query(1, ge=1, le=10, description="CPU intensive duration in seconds")
+    duration: int = Query(
+        1, ge=1, le=10, description="CPU intensive duration in seconds"
+    )
 ):
     """
     Simulate CPU intensive operation for testing auto-scaling.
     """
     import time
+
     start = time.time()
 
     # CPU intensive operation
     while time.time() - start < duration:
         _ = sum(i * i for i in range(1000000))
 
-    return {
-        "message": f"CPU intensive operation completed",
-        "duration": duration
-    }
+    return {"message": "CPU intensive operation completed", "duration": duration}
+
 
 @router.get("/memory")
 async def memory_intensive(
@@ -92,7 +90,4 @@ async def memory_intensive(
     data[0] = 1
     data[-1] = 1
 
-    return {
-        "message": f"Allocated {size_mb}MB of memory",
-        "size_mb": size_mb
-    }
+    return {"message": f"Allocated {size_mb}MB of memory", "size_mb": size_mb}

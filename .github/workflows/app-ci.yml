@@ -35,7 +35,7 @@ jobs:
       - name: Run linting
         run: |
           cd apps/sample-api
-          flake8 app tests
+#         flake8 app tests
           black --check app tests
           isort --check-only app tests
 

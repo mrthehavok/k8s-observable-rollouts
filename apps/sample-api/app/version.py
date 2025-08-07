@@ -1,4 +1,5 @@
 import os
+
 from app.models.info import VersionInfo
 
 version_info = VersionInfo(
@@ -8,6 +9,4 @@ version_info = VersionInfo(
     git_branch=os.getenv("GIT_BRANCH"),
 )
 
-changelog = {
-    "0.1.0": "Initial version"
-}
+changelog = {"0.1.0": "Initial version"}
