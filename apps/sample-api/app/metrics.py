@@ -1,7 +1,5 @@
 from prometheus_client import Counter, Histogram, Gauge, Info, REGISTRY
 from prometheus_client import generate_latest
-import time
-from typing import Dict, Any
 
 class MetricsRegistry:
     def __init__(self):

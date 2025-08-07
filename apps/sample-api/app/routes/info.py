@@ -17,7 +17,6 @@ async def get_version():
         build_number=version_info.build_number,
         git_commit=version_info.git_commit,
         git_branch=version_info.git_branch,
-        build_time=version_info.build_time,
         environment=settings.APP_ENV
     )
 

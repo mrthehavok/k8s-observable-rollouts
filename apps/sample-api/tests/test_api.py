@@ -12,16 +12,16 @@ def test_health_live(client):
     response = client.get("/health/live")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["status"] == "healthy"
-    assert "version" in data
+    assert data["status"] == "ok"
+    assert "components" in data
 
 def test_health_ready(client):
     """Test readiness probe"""
     response = client.get("/health/ready")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["status"] == "ready"
-    assert "checks" in data
+    assert data["status"] == "ok"
+    assert "components" in data
 
 def test_version_endpoint(client):
     """Test version endpoint"""

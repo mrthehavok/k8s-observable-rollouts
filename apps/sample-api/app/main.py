@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
+import os
 
 from app.config import settings
 from app.middleware import RequestMetricsMiddleware
@@ -42,13 +44,18 @@ app.add_middleware(
 app.add_middleware(RequestMetricsMiddleware)
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Include routers
 app.include_router(root.router)
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(info.router, prefix="/api", tags=["info"])
 app.include_router(demo.router, prefix="/demo", tags=["demo"])
+
+@app.get("/metrics")
+async def metrics():
+    return Response(media_type="text/plain", content=metrics_registry.get_metrics())
 
 if __name__ == "__main__":
     uvicorn.run(
