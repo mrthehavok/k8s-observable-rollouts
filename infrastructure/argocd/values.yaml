@@ -1,7 +1,10 @@
-# ArgoCD Helm chart values
+## ArgoCD Server
 server:
+  # Extra arguments
   extraArgs:
-    - --insecure
+    - --insecure # For local development only
+
+  # Ingress configuration
   ingress:
     enabled: true
     ingressClassName: nginx
@@ -10,21 +13,152 @@ server:
     paths:
       - /
     pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  # Metrics
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
+## Dex (OIDC Provider)
+dex:
+  enabled: false # Disabled for local development
+
+## Redis
+redis:
+  enabled: true
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+## Controller
 controller:
+  # Enable leader election for HA
+  enableLeaderElection: true
+
+  # Resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  # Metrics
   metrics:
     enabled: true
     serviceMonitor:
       enabled: true
+      interval: 30s
 
+## Repo Server
 repoServer:
+  # Auto-scaling
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+
+  # Resources
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  # Metrics
   metrics:
     enabled: true
     serviceMonitor:
       enabled: true
+      interval: 30s
 
-# Enable Argo Rollouts UI
+## ApplicationSet Controller
+applicationSet:
+  enabled: true
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+## Notifications Controller
+notifications:
+  enabled: true
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+## Global configurations
+global:
+  logging:
+    level: "info"
+    format: "json"
+
+## ConfigMap for ArgoCD settings
 configs:
   params:
+    # Disable authentication for local development
     server.disable.auth: true
+    # Enable insecure mode
+    server.insecure: true
+    # Application sync options
     application.instanceLabelKey: argocd.argoproj.io/instance
+    # Repo server timeout
+    timeout.reconciliation: 180s
+    # Resource tracking
+    application.resourceTrackingMethod: annotation
+
+  # Repository credentials (for private repos)
+  repositories:
+    - url: https://github.com/mrthehavok/k8s-observable-rollouts
+      name: main-repo
+      type: git
+
+  # Custom resource definitions
+  resource.customizations: |
+    argoproj.io/Rollout:
+      health.lua: |
+        local health_status = {}
+        if obj.status ~= nil then
+          if obj.status.conditions ~= nil then
+            for i, condition in ipairs(obj.status.conditions) do
+              if condition.type == "Healthy" and condition.status == "False" then
+                health_status.status = "Degraded"
+                health_status.message = condition.message
+                return health_status
+              end
+              if condition.type == "Healthy" and condition.status == "True" then
+                health_status.status = "Healthy"
+                health_status.message = condition.message
+              end
+            end
+          end
+        end
+        return health_status

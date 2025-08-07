@@ -4,7 +4,7 @@ title: "Deploy Argo CD (App-of-Apps pattern)"
 status: "Done"
 depends_on: ["task-1"]
 created: 2025-01-08
-updated: 2025-08-06
+updated: 2025-08-07
 ---
 
 ## Description
@@ -27,16 +27,17 @@ Deploy Argo CD to the Minikube cluster using the App-of-Apps pattern. Configure 
 - 2025-08-06T16:36:08Z: Branch `feat/task-2-argocd-deploy` created, initial manifests and scripts scaffolded.
 - 2025-08-06T17:50:00Z: Reset repository to a known good state and switched to remote manifest for Argo CD installation to resolve deployment issues.
 - 2025-08-06T17:55:00Z: Successfully deployed Argo CD using the remote manifest and verified UI access.
+- 2025-08-07 14:30: Re-installed Argo CD via remote install.yaml; removed Helm chart approach; verified service label fix; cluster healthy.
 
 ## Decisions Made
 
-<!-- Document key implementation decisions -->
+- Simplified Argo CD install to remote manifest to avoid Helm selector immutability issues.
 
 ## Files Modified
 
-- `scripts/deploy_argocd.sh` (modified)
+- `scripts/setup_argocd.sh` (modified)
 - `docs/infrastructure-setup.md` (modified)
-- `argocd/` (removed)
+- `infrastructure/argocd/values.yaml` (removed)
 
 ## Blockers
 
@@ -44,7 +45,7 @@ Deploy Argo CD to the Minikube cluster using the App-of-Apps pattern. Configure 
 
 ## Next Steps
 
-- Task complete.
+- None – task closed.
 
 ## Notes
 
