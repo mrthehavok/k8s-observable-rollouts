@@ -1,0 +1,69 @@
+name: Sample API CI
+
+on:
+  push:
+    paths:
+      - "apps/sample-api/**"
+      - ".github/workflows/app-ci.yml"
+  pull_request:
+    paths:
+      - "apps/sample-api/**"
+
+env:
+  PYTHON_VERSION: "3.11"
+  IMAGE_NAME: sample-api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd apps/sample-api
+          pip install -r requirements.txt
+
+      - name: Run linting
+        run: |
+          cd apps/sample-api
+          flake8 app tests
+          black --check app tests
+          isort --check-only app tests
+
+      - name: Run tests
+        run: |
+          cd apps/sample-api
+          pytest tests/ -v --cov=app --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./apps/sample-api/coverage.xml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/sample-api
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            BUILD_NUMBER=${{ github.run_number }}
+            GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
