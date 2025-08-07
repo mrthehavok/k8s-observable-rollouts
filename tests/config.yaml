@@ -1,0 +1,29 @@
+test_config:
+  cluster:
+    name: k8s-rollouts
+    context: k8s-rollouts
+
+  namespaces:
+    app: sample-app
+    monitoring: monitoring
+    argocd: argocd
+    rollouts: argo-rollouts
+
+  endpoints:
+    app: http://app.local
+    grafana: http://grafana.local
+    prometheus: http://prometheus.local
+    argocd: https://argocd.local
+    rollouts: http://rollouts.local
+
+  timeouts:
+    default: 30s
+    deployment: 5m
+    rollout: 10m
+    analysis: 5m
+
+  thresholds:
+    success_rate: 99
+    latency_p95: 200
+    latency_p99: 500
+    error_rate: 1

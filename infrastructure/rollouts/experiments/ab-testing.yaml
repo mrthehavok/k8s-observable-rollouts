@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Experiment
+metadata:
+  name: sample-api-experiment
+spec:
+  duration: 1h
+  progressDeadlineSeconds: 600
+  templates:
+    - name: baseline
+      selector:
+        matchLabels:
+          app: sample-api
+          version: stable
+      replicas: 1
+      spec:
+        containers:
+          - name: sample-api
+            image: sample-api:v1.0.0
+            ports:
+              - containerPort: 8000
+    - name: canary
+      selector:
+        matchLabels:
+          app: sample-api
+          version: canary
+      replicas: 1
+      spec:
+        containers:
+          - name: sample-api
+            image: sample-api:v2.0.0
+            ports:
+              - containerPort: 8000
+  analyses:
+    - name: experiment-analysis
+      templateName: ab-test-analysis
+      args:
+        - name: baseline-hash
+          valueFrom:
+            podTemplateHashValue: baseline
+        - name: canary-hash
+          valueFrom:
+            podTemplateHashValue: canary

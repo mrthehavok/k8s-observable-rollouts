@@ -1,0 +1,57 @@
+{{- if .Values.rollout.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  labels:
+    {{- include "sample-api.labels" . | nindent 4 }}
+spec:
+  metrics:
+  - name: success-rate
+    interval: {{ .Values.rollout.canary.analysis.interval }}
+    successCondition: result[0] >= {{ .Values.rollout.canary.analysis.successRateThreshold }}
+    failureLimit: {{ .Values.rollout.canary.analysis.failureLimit }}
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.monitoring:9090
+        query: |
+          sum(rate(
+            http_requests_total{
+              app_kubernetes_io_name="{{ include "sample-api.name" . }}",
+              app_kubernetes_io_instance="{{ .Release.Name }}",
+              status!~"5.."
+            }[2m]
+          )) /
+          sum(rate(
+            http_requests_total{
+              app_kubernetes_io_name="{{ include "sample-api.name" . }}",
+              app_kubernetes_io_instance="{{ .Release.Name }}"
+            }[2m]
+          )) * 100
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-p99
+  labels:
+    {{- include "sample-api.labels" . | nindent 4 }}
+spec:
+  metrics:
+  - name: latency-p99
+    interval: {{ .Values.rollout.canary.analysis.interval }}
+    successCondition: result[0] <= {{ .Values.rollout.canary.analysis.latencyThreshold }}
+    failureLimit: {{ .Values.rollout.canary.analysis.failureLimit }}
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.monitoring:9090
+        query: |
+          histogram_quantile(0.99,
+            sum(rate(
+              http_request_duration_seconds_bucket{
+                app_kubernetes_io_name="{{ include "sample-api.name" . }}",
+                app_kubernetes_io_instance="{{ .Release.Name }}"
+              }[2m]
+            )) by (le)
+          ) * 1000
+{{- end }}

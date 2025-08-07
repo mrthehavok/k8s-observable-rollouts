@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argo-rollouts-notification-configmap
+  namespace: argo-rollouts
+data:
+  service.webhook: |
+    url: http://webhook-handler.default.svc.cluster.local/rollouts
+    headers:
+    - name: Content-Type
+      value: application/json
+
+  template.rollout-completed: |
+    webhook:
+      rollouts:
+        method: POST
+        body: |
+          {
+            "rollout": "{{.rollout.metadata.name}}",
+            "namespace": "{{.rollout.metadata.namespace}}",
+            "status": "completed",
+            "version": "{{.rollout.spec.template.metadata.labels.version}}"
+          }
+
+  template.rollout-aborted: |
+    webhook:
+      rollouts:
+        method: POST
+        body: |
+          {
+            "rollout": "{{.rollout.metadata.name}}",
+            "namespace": "{{.rollout.metadata.namespace}}",
+            "status": "aborted",
+            "message": "{{.rollout.status.message}}"
+          }
+
+  trigger.on-rollout-completed: |
+    - when: rollout.status.phase == 'Healthy'
+      send: [rollout-completed]
+
+  trigger.on-rollout-aborted: |
+    - when: rollout.status.abort == true
+      send: [rollout-aborted]

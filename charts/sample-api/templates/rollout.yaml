@@ -1,0 +1,117 @@
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "sample-api.fullname" . }}
+  labels:
+    {{- include "sample-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.rollout.replicas }}
+  revisionHistoryLimit: {{ .Values.rollout.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "sample-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "sample-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "sample-api.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.startupProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            {{- include "sample-api.env" . | nindent 12 }}
+          {{- if .Values.config.envFrom }}
+          envFrom:
+            {{- toYaml .Values.config.envFrom | nindent 12 }}
+          {{- end }}
+          {{- if .Values.secrets.create }}
+          envFrom:
+            - secretRef:
+                name: {{ include "sample-api.fullname" . }}
+          {{- else if .Values.secrets.name }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.secrets.name }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              readOnly: false
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  strategy:
+    {{- if eq .Values.rollout.strategy "blueGreen" }}
+    blueGreen:
+      activeService: {{ include "sample-api.fullname" . }}
+      previewService: {{ include "sample-api.fullname" . }}-preview
+      autoPromotionEnabled: {{ .Values.rollout.blueGreen.autoPromotionEnabled }}
+      scaleDownDelaySeconds: {{ .Values.rollout.blueGreen.scaleDownDelaySeconds }}
+      {{- if .Values.rollout.blueGreen.prePromotionAnalysis.enabled }}
+      prePromotionAnalysis:
+        templates:
+        {{- range .Values.rollout.blueGreen.prePromotionAnalysis.templates }}
+        - templateName: {{ . }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.rollout.blueGreen.postPromotionAnalysis.enabled }}
+      postPromotionAnalysis:
+        templates:
+        {{- range .Values.rollout.blueGreen.postPromotionAnalysis.templates }}
+        - templateName: {{ . }}
+        {{- end }}
+      {{- end }}
+    {{- else if eq .Values.rollout.strategy "canary" }}
+    canary:
+      canaryService: {{ include "sample-api.fullname" . }}-canary
+      stableService: {{ include "sample-api.fullname" . }}
+      {{- if .Values.ingress.enabled }}
+      trafficRouting:
+        nginx:
+          stableIngress: {{ include "sample-api.fullname" . }}
+      {{- end }}
+      {{- with .Values.rollout.canary.steps }}
+      steps:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+{{- end }}

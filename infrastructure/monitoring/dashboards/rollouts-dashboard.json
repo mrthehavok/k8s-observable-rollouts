@@ -1,0 +1,39 @@
+{
+    "dashboard": {
+        "title": "Argo Rollouts Dashboard",
+        "panels": [
+            {
+                "title": "Rollout Status",
+                "targets": [
+                    {
+                        "expr": "rollout_info{namespace=\"sample-app\"}"
+                    }
+                ]
+            },
+            {
+                "title": "Canary vs Stable Traffic",
+                "targets": [
+                    {
+                        "expr": "sum(rate(nginx_ingress_controller_requests{service=~\".*sample-api.*\"}[2m])) by (service)"
+                    }
+                ]
+            },
+            {
+                "title": "Analysis Run Results",
+                "targets": [
+                    {
+                        "expr": "analysis_run_metric_phase{namespace=\"sample-app\"}"
+                    }
+                ]
+            },
+            {
+                "title": "Rollout Duration",
+                "targets": [
+                    {
+                        "expr": "time() - rollout_created_time{namespace=\"sample-app\"}"
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,63 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sample-api-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: sample-api
+      interval: 30s
+      rules:
+        # High error rate
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(http_requests_total{app_kubernetes_io_name="sample-api",status=~"5.."}[5m])) 
+            / sum(rate(http_requests_total{app_kubernetes_io_name="sample-api"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "High error rate detected for {{ $labels.app_kubernetes_io_name }}"
+            description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+            runbook_url: "https://wiki.example.com/runbooks/high-error-rate"
+
+        # High latency
+        - alert: HighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{app_kubernetes_io_name="sample-api"}[5m])) by (le)) > 1
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High latency detected for {{ $labels.app_kubernetes_io_name }}"
+            description: "P99 latency is {{ $value }}s for the last 5 minutes"
+
+        # Pod crash looping
+        - alert: PodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{namespace="sample-app",pod=~"sample-api-.*"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash looping"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes"
+
+        # High memory usage
+        - alert: HighMemoryUsage
+          expr: |
+            sum(container_memory_working_set_bytes{namespace="sample-app",pod=~"sample-api-.*"}) 
+            / sum(container_spec_memory_limit_bytes{namespace="sample-app",pod=~"sample-api-.*"}) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "High memory usage for {{ $labels.pod }}"
+            description: "Memory usage is {{ $value | humanizePercentage }} of limit"

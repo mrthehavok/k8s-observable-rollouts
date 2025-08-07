@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feature-flags
+  namespace: sample-app
+data:
+  flags.yaml: |
+    features:
+      new-ui:
+        enabled: false
+        rollout-percentage: 0
+      enhanced-api:
+        enabled: true
+        rollout-percentage: 100
+      experimental-feature:
+        enabled: true
+        rollout-percentage: 10
+        allowed-users:
+          - test@example.com
+          - beta@example.com

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sample-api.fullname" . }}-config
+  labels:
+    {{- include "sample-api.labels" . | nindent 4 }}
+data:
+  app-config.yaml: |
+    app:
+      name: {{ include "sample-api.name" . }}
+      environment: {{ .Values.config.environment }}
+      version: {{ .Chart.AppVersion }}
+    features:
+      slow_endpoint: {{ .Values.config.features.slowEndpoint }}
+      slow_delay: {{ .Values.config.features.slowEndpointDelay }}
+      error_rate: {{ .Values.config.features.errorRate }}
+    logging:
+      level: {{ .Values.config.logLevel }}
+      format: json

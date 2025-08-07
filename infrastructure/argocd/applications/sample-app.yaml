@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-api
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Annotations for notifications
+    notifications.argoproj.io/subscribe.on-deployed.slack: deployment
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: alerts
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: alerts
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/k8s-observable-rollouts
+    targetRevision: HEAD
+    path: charts/sample-api
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+      parameters:
+        - name: image.tag
+          value: latest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10

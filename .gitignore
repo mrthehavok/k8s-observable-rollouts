@@ -1,83 +1,44 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
-.env
-.venv
 env/
 venv/
-ENV/
-env.bak/
-venv.bak/
+.env
+.venv
+*.egg-info/
+dist/
+build/
 
-# pytest
-.cache
-.pytest_cache/
-
-# Coverage
-htmlcov/
-.coverage
-.coverage.*
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-pytestdebug.log
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# VS Code
+# IDE
 .vscode/
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Linux temporary files
+.idea/
+*.swp
+*.swo
 *~
 
+# OS
+.DS_Store
+Thumbs.db
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Helm
+charts/*/charts/
+charts/*/Chart.lock
+
+# Terraform (if used later)
+*.tfstate
+*.tfstate.*
+.terraform/
+
 # Logs
-logs/
 *.log
 
-# Helm chart artifacts
-charts/**/charts
-charts/**/tmpcharts
-*.tgz
-Chart.lock
-
-# Kustomize build artifacts
-kustomize-build/
-
-# Docker artifacts
-*.tar
-*.img
-docker-compose.override.yml
-
-# Node modules
-node_modules/
+# Temporary files
+*.tmp
+*.temp

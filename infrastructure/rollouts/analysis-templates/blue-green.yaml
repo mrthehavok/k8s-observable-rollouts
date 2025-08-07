@@ -1,0 +1,62 @@
+# Smoke test analysis
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: smoke-tests
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: smoke-test
+      count: 5
+      interval: 10s
+      successCondition: result == "true"
+      provider:
+        web:
+          url: "http://{{ args.service-name }}/health/ready"
+          jsonPath: "{$.status}"
+---
+# Load test analysis
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: load-test
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: load-test-latency
+      count: 3
+      interval: 30s
+      successCondition: result < 500
+      provider:
+        job:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: load-tester
+                    image: grafana/k6:latest
+                    command: ["k6", "run", "-"]
+                    stdin: |
+                      import http from 'k6/http';
+                      import { check } from 'k6';
+
+                      export let options = {
+                        stages: [
+                          { duration: '30s', target: 100 },
+                          { duration: '1m', target: 100 },
+                          { duration: '30s', target: 0 },
+                        ],
+                        thresholds: {
+                          http_req_duration: ['p(95)<500'],
+                        },
+                      };
+
+                      export default function() {
+                        let res = http.get('http://{{ args.service-name }}');
+                        check(res, {
+                          'status is 200': (r) => r.status === 200,
+                        });
+                      }
+                restartPolicy: Never

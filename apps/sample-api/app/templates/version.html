@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ app_name }} - Version {{ version }}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>{{ app_name }}</h1>
+        <p class="subtitle">K8s Observable Rollouts Demo</p>
+      </header>
+
+      <main>
+        <div class="version-card">
+          <h2>Version Information</h2>
+          <dl>
+            <dt>Version:</dt>
+            <dd class="version">{{ version }}</dd>
+
+            <dt>Environment:</dt>
+            <dd class="environment {{ environment }}">{{ environment }}</dd>
+
+            <dt>Build Number:</dt>
+            <dd>{{ build_number or 'N/A' }}</dd>
+
+            <dt>Git Commit:</dt>
+            <dd class="commit">{{ git_commit or 'N/A' }}</dd>
+
+            <dt>Build Time:</dt>
+            <dd>{{ build_time }}</dd>
+
+            <dt>Deployment Time:</dt>
+            <dd id="deployment-time">{{ deployment_time }}</dd>
+          </dl>
+        </div>
+
+        {% if changelog %}
+        <div class="changelog-card">
+          <h2>Recent Changes</h2>
+          <ul class="changelog">
+            {% for change in changelog %}
+            <li>{{ change }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <div class="status-card">
+          <h2>System Status</h2>
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">Health:</span>
+              <span class="status-value" id="health-status">Checking...</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Uptime:</span>
+              <span class="status-value" id="uptime">Calculating...</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Requests:</span>
+              <span class="status-value" id="request-count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="links-card">
+          <h2>Quick Links</h2>
+          <div class="links">
+            <a href="/docs" class="link-button">API Documentation</a>
+            <a href="/metrics" class="link-button">Prometheus Metrics</a>
+            <a href="/health/ready" class="link-button">Health Check</a>
+            <a href="/api/info" class="link-button">API Info</a>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <p>{{ app_name }} © 2024 | GitOps Demo Project</p>
+      </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>

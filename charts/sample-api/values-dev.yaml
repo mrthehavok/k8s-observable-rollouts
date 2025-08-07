@@ -1,0 +1,26 @@
+## Development environment overrides
+config:
+  environment: "development"
+  logLevel: "DEBUG"
+  debug: true
+  features:
+    slowEndpoint: true
+    slowEndpointDelay: 2
+    errorRate: 5 # 5% error rate for testing
+
+rollout:
+  replicas: 1
+  strategy: blueGreen
+  blueGreen:
+    autoPromotionEnabled: true # Auto-promote in dev
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false

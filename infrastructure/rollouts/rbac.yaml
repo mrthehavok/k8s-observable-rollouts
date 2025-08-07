@@ -1,0 +1,36 @@
+# ServiceAccount for Argo Rollouts to read metrics
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-rollouts-metrics-reader
+  namespace: argo-rollouts
+---
+# ClusterRole for reading metrics
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-rollouts-metrics-reader
+rules:
+  - apiGroups: [""]
+    resources: ["services", "pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts", "analysisruns", "experiments"]
+    verbs: ["get", "list", "watch"]
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-rollouts-metrics-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argo-rollouts-metrics-reader
+subjects:
+  - kind: ServiceAccount
+    name: argo-rollouts-metrics-reader
+    namespace: argo-rollouts

@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sample-api
+  namespace: sample-app
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sample-api
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics
+      scheme: http
+      metricRelabelings:
+        # Add version label from pod
+        - sourceLabels: [__meta_kubernetes_pod_label_version]
+          targetLabel: version
+        # Drop unnecessary metrics
+        - sourceLabels: [__name__]
+          regex: "python_.*"
+          action: drop

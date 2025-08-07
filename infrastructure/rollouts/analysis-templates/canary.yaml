@@ -1,0 +1,125 @@
+# Success rate analysis
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  namespace: argo-rollouts
+spec:
+  args:
+    - name: service-name
+    - name: namespace
+      value: sample-app
+  metrics:
+    - name: success-rate
+      interval: 30s
+      count: 10
+      successCondition: result[0] >= 95
+      failureCondition: result[0] < 90
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring:9090
+          query: |
+            sum(rate(
+              http_requests_total{
+                app_kubernetes_io_name="sample-api",
+                namespace="{{ args.namespace }}",
+                status!~"5.."
+              }[2m]
+            )) by (version) / 
+            sum(rate(
+              http_requests_total{
+                app_kubernetes_io_name="sample-api",
+                namespace="{{ args.namespace }}"
+              }[2m]
+            )) by (version) * 100
+---
+# P99 latency analysis
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-p99
+  namespace: argo-rollouts
+spec:
+  args:
+    - name: service-name
+    - name: namespace
+      value: sample-app
+  metrics:
+    - name: latency-p99
+      interval: 30s
+      count: 10
+      successCondition: result[0] <= 0.5
+      failureCondition: result[0] > 1.0
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring:9090
+          query: |
+            histogram_quantile(0.99,
+              sum(rate(
+                http_request_duration_seconds_bucket{
+                  app_kubernetes_io_name="sample-api",
+                  namespace="{{ args.namespace }}",
+                  version="canary"
+                }[2m]
+              )) by (le)
+            )
+---
+# Error logs analysis
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-logs
+  namespace: argo-rollouts
+spec:
+  args:
+    - name: namespace
+      value: sample-app
+  metrics:
+    - name: error-count
+      interval: 30s
+      count: 10
+      successCondition: result[0] <= 10
+      failureCondition: result[0] > 50
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring:9090
+          query: |
+            sum(rate(
+              app_errors_total{
+                app_kubernetes_io_name="sample-api",
+                namespace="{{ args.namespace }}",
+                version="canary"
+              }[5m]
+            ))
+---
+# CPU usage analysis
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: cpu-usage
+  namespace: argo-rollouts
+spec:
+  args:
+    - name: namespace
+      value: sample-app
+  metrics:
+    - name: cpu-usage
+      interval: 30s
+      count: 10
+      successCondition: result[0] <= 80
+      failureCondition: result[0] > 90
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring:9090
+          query: |
+            avg(
+              rate(container_cpu_usage_seconds_total{
+                namespace="{{ args.namespace }}",
+                pod=~".*sample-api.*",
+                container="sample-api"
+              }[2m]) * 100
+            )

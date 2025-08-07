@@ -1,0 +1,38 @@
+test_applications:
+  - name: test-app-bluegreen
+    strategy: blueGreen
+    image: nginx:1.19
+    replicas: 2
+
+  - name: test-app-canary
+    strategy: canary
+    image: nginx:1.19
+    replicas: 3
+    canarySteps:
+      - setWeight: 20
+      - pause: { duration: 30s }
+      - setWeight: 50
+      - pause: { duration: 30s }
+      - setWeight: 100
+
+test_metrics:
+  - metric: http_requests_total
+    value: 1000
+    labels:
+      app: sample-api
+      status: "200"
+
+  - metric: http_request_duration_seconds
+    value: 0.05
+    labels:
+      app: sample-api
+      quantile: "0.99"
+
+test_alerts:
+  - name: HighErrorRate
+    severity: critical
+    threshold: 5
+
+  - name: HighLatency
+    severity: warning
+    threshold: 1000

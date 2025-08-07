@@ -1,0 +1,47 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rollout-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: rollouts
+      interval: 30s
+      rules:
+        - alert: RolloutStalled
+          expr: |
+            rollout_phase{phase="Paused"} == 1
+            and time() - rollout_phase_last_transition_time > 3600
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Rollout {{ $labels.name }} has been paused for over 1 hour"
+
+        - alert: RolloutFailed
+          expr: |
+            rollout_phase{phase="Error"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Rollout {{ $labels.name }} has failed"
+
+        - alert: AnalysisRunFailed
+          expr: |
+            analysis_run_phase{phase="Failed"} == 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Analysis run {{ $labels.name }} has failed"
+
+        - alert: HighCanaryErrorRate
+          expr: |
+            sum(rate(http_requests_total{version="canary",status=~"5.."}[5m])) /
+            sum(rate(http_requests_total{version="canary"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Canary deployment has error rate above 5%"

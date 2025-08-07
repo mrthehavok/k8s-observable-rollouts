@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Configuration
 CLUSTER_NAME="k8s-rollouts"
-K8S_VERSION="v1.31.1"
+K8S_VERSION="v1.28.3"
 MEMORY="8192"
 CPUS="4"
 DISK_SIZE="20g"

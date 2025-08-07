@@ -1,0 +1,30 @@
+# ArgoCD Helm chart values
+server:
+  extraArgs:
+    - --insecure
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - argocd.local
+    paths:
+      - /
+    pathType: Prefix
+
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+repoServer:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Enable Argo Rollouts UI
+configs:
+  params:
+    server.disable.auth: true
+    application.instanceLabelKey: argocd.argoproj.io/instance

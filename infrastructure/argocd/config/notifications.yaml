@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  service.webhook.deployment: |
+    url: http://webhook-service.default.svc.cluster.local/deployment
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  template.app-deployed: |
+    webhook:
+      deployment:
+        method: POST
+        body: |
+          {
+            "app": "{{.app.metadata.name}}",
+            "status": "deployed",
+            "revision": "{{.app.status.sync.revision}}",
+            "time": "{{.time}}"
+          }
+
+  template.app-health-degraded: |
+    webhook:
+      deployment:
+        method: POST
+        body: |
+          {
+            "app": "{{.app.metadata.name}}",
+            "status": "degraded",
+            "message": "{{.app.status.health.message}}",
+            "time": "{{.time}}"
+          }
+
+  trigger.on-deployed: |
+    - when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy'
+      send: [app-deployed]
+
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      send: [app-health-degraded]

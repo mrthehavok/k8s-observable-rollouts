@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: production
+  namespace: argocd
+spec:
+  description: Production applications
+  sourceRepos:
+    - "https://github.com/your-org/*"
+    - "https://charts.helm.sh/*"
+    - "https://argoproj.github.io/*"
+    - "https://prometheus-community.github.io/*"
+  destinations:
+    - namespace: "sample-app"
+      server: https://kubernetes.default.svc
+    - namespace: "monitoring"
+      server: https://kubernetes.default.svc
+    - namespace: "argo-rollouts"
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "apiextensions.k8s.io"
+      kind: CustomResourceDefinition
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  roles:
+    - name: admin
+      policies:
+        - p, proj:production:admin, applications, *, production/*, allow
+      groups:
+        - argocd-admins
+    - name: developer
+      policies:
+        - p, proj:production:developer, applications, get, production/*, allow
+        - p, proj:production:developer, applications, sync, production/*, allow
+      groups:
+        - developers

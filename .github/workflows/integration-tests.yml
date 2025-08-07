@@ -1,0 +1,50 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 0 * * *" # Daily
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Minikube
+        uses: medyagh/setup-minikube@master
+        with:
+          kubernetes-version: v1.28.3
+          memory: 8192
+          cpus: 4
+
+      - name: Deploy stack
+        run: |
+          make cluster-up
+          make deploy-all
+
+      - name: Wait for deployments
+        run: |
+          kubectl wait --for=condition=ready pod -l app=sample-api -n sample-app --timeout=300s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n monitoring --timeout=300s
+
+      - name: Run integration tests
+        run: |
+          pip install -r tests/requirements.txt
+          pytest tests/integration -v --junit-xml=test-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: test-results.xml
+
+      - name: Generate test report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Integration Test Results
+          path: test-results.xml
+          reporter: java-junit

@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollout-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  rollout-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Argo Rollouts Dashboard",
+        "panels": [
+          {
+            "title": "Active Rollouts",
+            "targets": [
+              {
+                "expr": "count(rollout_info) by (name, namespace, phase)"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "title": "Rollout Phase Distribution",
+            "targets": [
+              {
+                "expr": "sum(rollout_phase) by (phase)"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            }
+          },
+          {
+            "title": "Canary Weight Over Time",
+            "targets": [
+              {
+                "expr": "rollout_canary_weight"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 8
+            }
+          },
+          {
+            "title": "Analysis Run Results",
+            "targets": [
+              {
+                "expr": "analysis_run_metric_phase{phase=\"Successful\"}"
+              },
+              {
+                "expr": "analysis_run_metric_phase{phase=\"Failed\"}"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 8
+            }
+          },
+          {
+            "title": "Rollout Duration",
+            "targets": [
+              {
+                "expr": "time() - rollout_created_time"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 24,
+              "x": 0,
+              "y": 16
+            }
+          }
+        ]
+      }
+    }
