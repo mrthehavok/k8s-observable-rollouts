@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-K8S_VERSION="v1.31.1"
+K8S_VERSION="v1.33.1"
 MEMORY="8192"
 CPUS="4"
 DISK_SIZE="20g"
@@ -31,7 +31,6 @@ kubectl wait --for=condition=ready nodes --all --timeout=300s
 
 # Enable additional addons
 echo "🔧 Enabling additional addons..."
-minikube addons enable ingress-dns 
 minikube addons enable registry 
 minikube addons enable storage-provisioner 
 
@@ -76,7 +75,7 @@ echo "📊 Cluster Information:"
 echo "========================"
 kubectl cluster-info
 echo ""
-echo "🔗 Minikube IP: $(minikube ip -p ${CLUSTER_NAME})"
+echo "🔗 Minikube IP: $(minikube ip )"
 echo ""
 echo "📝 Available Nodes:"
 kubectl get nodes

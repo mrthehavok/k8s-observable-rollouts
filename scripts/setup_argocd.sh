@@ -18,7 +18,7 @@ echo "📦 Installing ArgoCD via Helm..."
 helm upgrade --install argocd argo/argo-cd \
     --namespace ${ARGOCD_NAMESPACE} \
     --version ${ARGOCD_VERSION} \
-    --values argocd-apps/argocd/values.yaml \
+    --values infrastructure/argocd/values.yaml \
     --wait
 
 # Wait for ArgoCD to be ready
