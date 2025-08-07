@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+# Clean up background processes on exit
+cleanup() {
+    echo "🧹 Cleaning up..."
+    if [ -n "$PORT_FORWARD_PID" ]; then
+        kill $PORT_FORWARD_PID
+    fi
+}
+trap cleanup EXIT
+
 ARGOCD_VERSION="8.2.2"
 ARGOCD_NAMESPACE="argocd"
 
@@ -46,20 +55,21 @@ fi
 
 # Configure ArgoCD CLI
 echo "🔧 Configuring ArgoCD CLI..."
-argocd login argocd.local --username admin --password "${ARGOCD_PASSWORD}" --insecure
+
+echo "🔌 Starting port-forward to ArgoCD server in the background..."
+kubectl port-forward svc/argocd-server -n ${ARGOCD_NAMESPACE} 8080:443 >/dev/null 2>&1 &
+PORT_FORWARD_PID=$!
+sleep 5 # Wait for the port-forward to be established
+
+argocd login localhost:8080 --username admin --password "${ARGOCD_PASSWORD}" --insecure --plaintext
 
 # Deploy App of Apps
 echo "🎯 Deploying App of Apps..."
 kubectl apply -f infrastructure/argocd/applications/app-of-apps.yaml
 echo "Argo CD deployed ✔"
 
-echo "⏳ Waiting for Argo CD pods to be ready..."
-kubectl wait --for=condition=ready pod --all -n argocd --timeout=300s
-
-#echo "🔑 Argo CD initial admin password:"
-#argocd admin initial-password -n argocd
-#echo "✅ Argo CD is ready."
-
 echo ""
-echo "🚀 You can now access the Argo CD UI"
-kubectl -n argocd port-forward svc/argocd-server 8080:443
+echo "✅ Argo CD is ready."
+echo "🚀 The setup script has finished. The port-forward process was stopped."
+echo "To access the UI, run this command in your terminal:"
+echo "kubectl -n argocd port-forward svc/argocd-server 8080:443"
