@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
 import asyncio
 import random
 from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Query
 
 from app.config import settings
 from app.metrics import metrics_registry

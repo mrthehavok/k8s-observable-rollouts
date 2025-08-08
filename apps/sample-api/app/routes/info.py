@@ -1,11 +1,12 @@
+import json
+from datetime import datetime
+
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
-from datetime import datetime
-import json
 
-from app.models.info import VersionInfo, AppInfo
 from app.config import settings
-from app.version import version_info, changelog
+from app.models.info import AppInfo, VersionInfo
+from app.version import changelog, version_info
 
 router = APIRouter()
 

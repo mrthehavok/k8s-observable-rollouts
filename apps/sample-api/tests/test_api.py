@@ -1,6 +1,7 @@
 import pytest
 from fastapi import status
 
+
 def test_root_endpoint(client):
     """Test root endpoint returns 200"""
     response = client.get("/")

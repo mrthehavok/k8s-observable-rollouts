@@ -1,14 +1,16 @@
+from contextlib import asynccontextmanager
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
-import uvicorn
 
 from app.config import settings
-from app.middleware import RequestMetricsMiddleware
 from app.metrics import metrics_registry
-from app.routes import health, info, demo, root
+from app.middleware import RequestMetricsMiddleware
+from app.routes import demo, health, info, root
 from app.version import version_info
+
 
 # Lifespan context manager for startup/shutdown
 @asynccontextmanager
