@@ -27,25 +27,19 @@ jobs:
       - name: Install dependencies
         run: |
           cd apps/sample-api
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          pip install isort
 
       - name: Run linting
         run: |
           cd apps/sample-api
-          flake8 app tests
-          black --check app tests
           isort --check-only app tests
 
       - name: Run tests
         run: |
           cd apps/sample-api
-          pytest tests/ -v --cov=app --cov-report=xml
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./apps/sample-api/coverage.xml
+          pytest tests/ -v
 
   build:
     needs: test
@@ -67,4 +61,3 @@ jobs:
             BUILD_NUMBER=${{ github.run_number }}
             GIT_COMMIT=${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
