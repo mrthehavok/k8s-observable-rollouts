@@ -1,0 +1,22 @@
+{{- if and .Values.rollouts.enabled (eq .Values.rollouts.strategy "blueGreen") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-preview" (include "sample-api.fullname" .) | quote }}
+  labels:
+    {{- include "sample-api.labels" . | nindent 4 }}
+    app.kubernetes.io/component: preview
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: {{ .Values.ports.http.name | quote }}
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.ports.http.name | quote }}
+      protocol: TCP
+  selector:
+    {{- include "sample-api.selectorLabels" . | nindent 4 }}
+{{- end }}

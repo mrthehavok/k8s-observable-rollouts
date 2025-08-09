@@ -1,0 +1,97 @@
+{{- if .Values.rollouts.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "sample-api.fullname" . | quote }}
+  labels:
+    {{- include "sample-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      {{- include "sample-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sample-api.selectorLabels" . | nindent 8 }}
+      {{- $hasMetrics := and .Values.metrics.enabled .Values.metrics.scrape.enabled }}
+      {{- if or $hasMetrics .Values.metrics.annotations .Values.podAnnotations }}
+      annotations:
+        {{- if $hasMetrics }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: {{ .Values.metrics.path | quote }}
+        prometheus.io/port: {{ .Values.ports.http.containerPort | quote }}
+        {{- end }}
+        {{- with .Values.metrics.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "sample-api.serviceAccountName" . | quote }}
+      containers:
+        - name: {{ include "sample-api.name" . | quote }}
+          image: {{ printf "%s:%s" .Values.image.repository (default .Chart.AppVersion .Values.image.tag) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: {{ .Values.ports.http.name | quote }}
+              containerPort: {{ .Values.ports.http.containerPort }}
+              protocol: TCP
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path | quote }}
+              port: {{ .Values.ports.http.name | quote }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path | quote }}
+              port: {{ .Values.ports.http.name | quote }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startup.path | quote }}
+              port: {{ .Values.ports.http.name | quote }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.env }}
+          env:
+            {{- range . }}
+            - name: {{ .name | quote }}
+              value: {{ .value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  {{- if eq .Values.rollouts.strategy "blueGreen" }}
+  strategy:
+    blueGreen:
+      activeService: {{ include "sample-api.fullname" . | quote }}
+      previewService: {{ printf "%s-preview" (include "sample-api.fullname" .) | quote }}
+      autoPromotionEnabled: {{ default true .Values.rollouts.blueGreen.autoPromotionEnabled }}
+      autoPromotionSeconds: {{ default 0 .Values.rollouts.blueGreen.autoPromotionSeconds }}
+  {{- else if eq .Values.rollouts.strategy "canary" }}
+  strategy:
+    canary:
+      stableService: {{ include "sample-api.fullname" . | quote }}
+      canaryService: {{ printf "%s-canary" (include "sample-api.fullname" .) | quote }}
+      {{- with .Values.rollouts.canary.steps }}
+      steps:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- end }}
+{{- end }}
