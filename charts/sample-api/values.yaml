@@ -65,15 +65,18 @@ metrics:
 
 rollouts:
   enabled: true
-  strategy: blueGreen # Options: blueGreen | canary
+  strategy: canary # Options: blueGreen | canary
   canary:
+    enabled: true
     # Example:
     # steps:
     #   - setWeight: 20
-    #   - pause: { duration: 10 }
-    steps: []
+    #   - pause: {}
+    steps:
+      - setWeight: 20
+      - pause: {}
   blueGreen:
-    autoPromotionEnabled: true
+    autoPromotionEnabled: false
     autoPromotionSeconds: 0
 
 config:

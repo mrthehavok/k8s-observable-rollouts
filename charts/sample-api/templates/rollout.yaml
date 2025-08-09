@@ -77,15 +77,14 @@ spec:
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-  {{- if eq .Values.rollouts.strategy "blueGreen" }}
   strategy:
+    {{- if eq .Values.rollouts.strategy "blueGreen" }}
     blueGreen:
       activeService: {{ include "sample-api.fullname" . | quote }}
       previewService: {{ printf "%s-preview" (include "sample-api.fullname" .) | quote }}
       autoPromotionEnabled: {{ default true .Values.rollouts.blueGreen.autoPromotionEnabled }}
       autoPromotionSeconds: {{ default 0 .Values.rollouts.blueGreen.autoPromotionSeconds }}
-  {{- else if eq .Values.rollouts.strategy "canary" }}
-  strategy:
+    {{- else if and (eq .Values.rollouts.strategy "canary") .Values.rollouts.canary.enabled }}
     canary:
       stableService: {{ include "sample-api.fullname" . | quote }}
       canaryService: {{ printf "%s-canary" (include "sample-api.fullname" .) | quote }}
@@ -93,5 +92,5 @@ spec:
       steps:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  {{- end }}
+    {{- end }}
 {{- end }}
