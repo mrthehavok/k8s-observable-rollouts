@@ -76,6 +76,7 @@ rollouts:
       - setWeight: 20
       - pause: {}
   blueGreen:
+    enabled: false
     autoPromotionEnabled: false
     autoPromotionSeconds: 0
 
