@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: sample-api
+  repository: ghcr.io/mrthehavok/sample-api
   tag: "latest"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 imagePullSecrets: []
 nameOverride: ""
