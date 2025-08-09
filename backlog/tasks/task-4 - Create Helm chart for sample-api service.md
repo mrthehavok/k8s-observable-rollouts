@@ -4,7 +4,7 @@ title: "Create Helm chart for sample-api service"
 status: "Done"
 depends_on: ["task-3"]
 created: 2025-01-08
-updated: 2025-08-08
+updated: 2025-08-09
 ---
 
 ## Description
@@ -28,6 +28,7 @@ Dev-only Helm chart for the FastAPI sample microservice with minimal resources, 
 - 2025-08-08T15:50:37+02:00: Verified helm lint and rendered both blue-green and canary via helm template.
 - 2025-08-08T15:51:35+02:00: Added charts/sample-api/README.md (quickstart and strategy selection).
 - 2025-08-08T15:52:45+02:00: All acceptance criteria met; marking task Done.
+- 2025-08-09T14:19:38+02:00: Deferred further cluster/ArgoCD troubleshooting to follow-up tasks; created plan for E2E validation and rollout tests.
 
 ## Decisions Made
 
@@ -53,7 +54,8 @@ Dev-only Helm chart for the FastAPI sample microservice with minimal resources, 
 
 ## Next Steps
 
-- None. Task complete. Proceed with [task-5 - Configure Argo Rollouts strategies for sample-api](backlog/tasks/task-5%20-%20Configure%20Argo%20Rollouts%20strategies%20for%20sample-api.md) for advanced rollout settings and traffic management.
+- Create and execute task-8: E2E environment validation (cluster, Argo CD apps, rollouts controller, app reachability, metrics) with zero errors.
+- Create and execute task-9: Deploy new version using blue-green and canary strategies via Argo Rollouts; validate rollout success and rollback paths.
 
 ## Notes
 
