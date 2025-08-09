@@ -1,0 +1,99 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mrthehavok/sample-api
+  tag: "latest"
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+
+rbac:
+  create: false
+
+podAnnotations: {}
+podLabels: {}
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ports:
+  http:
+    name: http
+    containerPort: 8000
+
+resources:
+  limits: {}
+  requests: {}
+
+env: []
+extraEnvFrom: []
+
+probes:
+  liveness:
+    enabled: true
+    path: /health/live
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  startup:
+    enabled: false
+    path: /health/startup
+    failureThreshold: 30
+    periodSeconds: 10
+
+metrics:
+  enabled: true
+  path: /metrics
+  scrape:
+    enabled: true
+    interval: 15s
+    port: http
+  serviceMonitor:
+    enabled: false
+  annotations: {}
+
+rollouts:
+  enabled: true
+  strategy: blueGreen # Options: blueGreen | canary
+  canary:
+    # Example:
+    # steps:
+    #   - setWeight: 20
+    #   - pause: { duration: 10 }
+    steps: []
+  blueGreen:
+    autoPromotionEnabled: true
+    autoPromotionSeconds: 0
+
+config:
+  enabled: false
+  data: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: sample-api.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+labels: {}
+annotations: {}

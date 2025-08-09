@@ -1,0 +1,16 @@
+apiVersion: v2
+name: sample-api
+description: Helm chart for the FastAPI sample microservice (task-4)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - fastapi
+  - python
+  - sample-api
+  - kubernetes
+  - helm
+sources:
+  - https://github.com/idmitriev/k8s-observable-rollouts
+annotations:
+  category: application
