@@ -88,6 +88,11 @@ spec:
     canary:
       stableService: {{ include "sample-api.fullname" . | quote }}
       canaryService: {{ printf "%s-canary" (include "sample-api.fullname" .) | quote }}
+      {{- with .Values.rollouts.canary.trafficRouting }}
+      trafficRouting:
+        nginx:
+          stableIngress: {{ .Values.rollouts.canary.trafficRouting.nginx.stableIngress }}
+      {{- end }}
       {{- with .Values.rollouts.canary.steps }}
       steps:
         {{- toYaml . | nindent 8 }}
