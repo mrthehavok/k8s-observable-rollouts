@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sample-api-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: sample-api.rules
+      rules:
+        - alert: SampleApiHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+              /
+            sum(rate(http_requests_total[5m]))
+              > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            service: sample-api
+          annotations:
+            summary: "High HTTP 5xx error rate on sample-api"
+            description: "5xx error rate > 5% over the last 5 minutes."
+        - alert: SampleApiHighLatencyP95
+          expr: |
+            histogram_quantile(
+              0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            service: sample-api
+          annotations:
+            summary: "High P95 latency on sample-api"
+            description: "P95 latency > 500ms over the last 5 minutes."
