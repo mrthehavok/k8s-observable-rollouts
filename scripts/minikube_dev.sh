@@ -20,6 +20,11 @@ PF_PIDFILE="${PF_PIDFILE:-$PF_PIDFILE_DEFAULT}"
 DASH_PIDFILE="${DASH_PIDFILE:-.minikube-dashboard.pid}"
 TUNNEL_PIDFILE="${TUNNEL_PIDFILE:-.minikube-tunnel.pid}"
 
+# Qdrant docker settings (background service)
+QDRANT_IMAGE="${QDRANT_IMAGE:-qdrant/qdrant}"
+QDRANT_CONTAINER="${QDRANT_CONTAINER:-qdrant-dev}"
+QDRANT_PORT="${QDRANT_PORT:-6333}"
+
 log() { printf '[%s] %s\n' "$(date -Is)" "$*"; }
 err() { printf '[%s] ERROR: %s\n' "$(date -Is)" "$*" >&2; }
 die() { err "$*"; exit 1; }
@@ -28,6 +33,7 @@ need() { command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
 deps() {
   need minikube
   need kubectl
+  need docker
 }
 
 dashboard_start_bg() {
@@ -120,6 +126,51 @@ tunnel_stop() {
   fi
 }
 
+# Qdrant (Vector DB) helpers
+qdrant_start_bg() {
+  # Start qdrant in background if not running
+  if docker inspect -f '{{.State.Running}}' "${QDRANT_CONTAINER}" 2>/dev/null | grep -q true; then
+    log "Qdrant already running (container=${QDRANT_CONTAINER})"
+    return 0
+  fi
+  if docker ps -a --filter "name=^/${QDRANT_CONTAINER}$" --format '{{.Names}}' | grep -qx "${QDRANT_CONTAINER}"; then
+    log "Starting existing Qdrant container (${QDRANT_CONTAINER})..."
+    docker start "${QDRANT_CONTAINER}" >/dev/null
+  else
+    log "Running Qdrant container in background: ${QDRANT_IMAGE} (port ${QDRANT_PORT})"
+    docker run -d --name "${QDRANT_CONTAINER}" -p "${QDRANT_PORT}:${QDRANT_PORT}" "${QDRANT_IMAGE}" >/dev/null
+  fi
+  log "Qdrant started. Status: $(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || echo "unknown")"
+}
+
+qdrant_status() {
+  local status
+  status="$(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || true)"
+  if [[ "${status}" == "running" ]]; then
+    local cid; cid="$(docker ps --filter "name=^/${QDRANT_CONTAINER}$" --format '{{.ID}}' | head -n1)"
+    log "Qdrant status: running (container=${QDRANT_CONTAINER}, id=${cid}, port=${QDRANT_PORT})"
+  elif [[ -n "${status}" ]]; then
+    log "Qdrant status: ${status} (container=${QDRANT_CONTAINER})"
+  else
+    log "Qdrant status: not found"
+  fi
+}
+
+qdrant_stop() {
+  if docker ps -a --filter "name=^/${QDRANT_CONTAINER}$" --format '{{.Names}}' | grep -qx "${QDRANT_CONTAINER}"; then
+    local status; status="$(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || true)"
+    if [[ "${status}" == "running" ]]; then
+      log "Stopping Qdrant container (${QDRANT_CONTAINER})..."
+      docker stop "${QDRANT_CONTAINER}" >/dev/null || true
+      log "Qdrant stopped."
+    else
+      log "Qdrant not running (status=${status:-unknown})."
+    fi
+  else
+    log "Qdrant container not present (${QDRANT_CONTAINER})."
+  fi
+}
+ 
 pf_all_start() {
   : > "${PF_PIDFILE}"
   # For each service, forward first port (port:port)
@@ -178,7 +229,8 @@ cmd_start() {
   dashboard_start_bg
   tunnel_start_bg
   pf_all_start
-
+  qdrant_start_bg
+ 
   log "Start complete. Use './scripts/minikube_dev.sh status' to verify."
 }
 
@@ -202,14 +254,16 @@ cmd_status() {
   dashboard_status
   tunnel_status
   pf_all_status
+  qdrant_status
 }
 
 cmd_stop() {
   deps
-  log "Stopping dev helpers (port-forwards, dashboard, tunnel)..."
+  log "Stopping dev helpers (port-forwards, dashboard, tunnel, qdrant)..."
   pf_all_stop
   dashboard_stop
   tunnel_stop
+  qdrant_stop
 
   log "Stopping Minikube (profile=${PROFILE})..."
   minikube stop -p "${PROFILE}" || true
