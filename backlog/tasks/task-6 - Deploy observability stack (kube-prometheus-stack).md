@@ -1,7 +1,7 @@
 ---
 id: task-6
 title: "Deploy observability stack (kube-prometheus-stack)"
-status: "In Progress"
+status: "Done"
 depends_on: ["task-2"]
 created: 2025-01-08
 updated: 2025-08-11
@@ -27,6 +27,7 @@ Deploy a comprehensive observability stack using kube-prometheus-stack (Promethe
 ## Session History
 
 - 2025-08-11 13:44 UTC: Switched to branch feat/task-6-deploy-observability-stack; began implementation plan; approved fallback editing tools (apply_diff/write_to_file).
+- 2025-08-11 15:17 UTC: Marked task Done per TM-06; continue CI/CD work in task-7 (branch feat/task-7-ci-cd-tests-linting).
 
 ## Decisions Made
 

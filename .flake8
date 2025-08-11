@@ -1,0 +1,9 @@
+[flake8]
+# Keep in sync with black defaults and common conventions
+max-line-length = 100
+extend-ignore = E203,W503
+exclude = .git,__pycache__,.venv,venv,env,build,dist
+
+# Per-file exceptions
+per-file-ignores =
+    apps/sample-api/app/__init__.py:F401
