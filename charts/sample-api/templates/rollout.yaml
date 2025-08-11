@@ -99,7 +99,7 @@ spec:
       {{- with .Values.rollouts.canary.trafficRouting }}
       trafficRouting:
         nginx:
-          stableIngress: {{ .Values.rollouts.canary.trafficRouting.nginx.stableIngress }}
+          stableIngress: {{ .nginx.stableIngress | quote }}
       {{- end }}
       {{- with .Values.rollouts.canary.steps }}
       steps:
