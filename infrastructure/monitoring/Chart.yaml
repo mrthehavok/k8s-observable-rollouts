@@ -1,0 +1,11 @@
+apiVersion: v2
+name: monitoring
+description: Umbrella chart to deploy kube-prometheus-stack with opinionated defaults and custom monitors/dashboards/rules for this repo.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: kube-prometheus-stack
+    version: 62.7.0
+    repository: https://prometheus-community.github.io/helm-charts
