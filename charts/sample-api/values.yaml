@@ -70,7 +70,7 @@ rollouts:
     enabled: true
     trafficRouting:
       nginx:
-        stableIngress: { { include "sample-api.fullname" . } }
+        stableIngress: ""
     # Example:
     # steps:
     #   - setWeight: 20

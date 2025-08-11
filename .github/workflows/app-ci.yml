@@ -41,3 +41,15 @@ jobs:
         run: |
           cd apps/sample-api
           pytest tests/ -v
+  helm-lint:
+    name: Lint Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+      - name: Helm lint
+        run: |
+          helm lint charts/sample-api
