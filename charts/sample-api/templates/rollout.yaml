@@ -8,6 +8,10 @@ metadata:
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 2
+  {{- with .Values.rollouts.rollbackWindow }}
+  rollbackWindow:
+    revisions: {{ .revisions }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "sample-api.selectorLabels" . | nindent 6 }}
@@ -16,8 +20,12 @@ spec:
       labels:
         {{- include "sample-api.selectorLabels" . | nindent 8 }}
       {{- $hasMetrics := and .Values.metrics.enabled .Values.metrics.scrape.enabled }}
-      {{- if or $hasMetrics .Values.metrics.annotations .Values.podAnnotations }}
+      {{- if or $hasMetrics .Values.metrics.annotations .Values.podAnnotations .Values.rollouts.restartAt }}
       annotations:
+        {{- if .Values.rollouts.restartAt }}
+        kubectl.kubernetes.io/restartedAt: {{ .Values.rollouts.restartAt | quote }}
+        rollouts.argoproj.io/restartedAt: {{ .Values.rollouts.restartAt | quote }}
+        {{- end }}
         {{- if $hasMetrics }}
         prometheus.io/scrape: "true"
         prometheus.io/path: {{ .Values.metrics.path | quote }}
@@ -77,21 +85,25 @@ spec:
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-  {{- if eq .Values.rollouts.strategy "blueGreen" }}
   strategy:
+    {{- if eq .Values.rollouts.strategy "blueGreen" }}
     blueGreen:
       activeService: {{ include "sample-api.fullname" . | quote }}
       previewService: {{ printf "%s-preview" (include "sample-api.fullname" .) | quote }}
       autoPromotionEnabled: {{ default true .Values.rollouts.blueGreen.autoPromotionEnabled }}
       autoPromotionSeconds: {{ default 0 .Values.rollouts.blueGreen.autoPromotionSeconds }}
-  {{- else if eq .Values.rollouts.strategy "canary" }}
-  strategy:
+    {{- else if and (eq .Values.rollouts.strategy "canary") .Values.rollouts.canary.enabled }}
     canary:
       stableService: {{ include "sample-api.fullname" . | quote }}
       canaryService: {{ printf "%s-canary" (include "sample-api.fullname" .) | quote }}
+      {{- with .Values.rollouts.canary.trafficRouting }}
+      trafficRouting:
+        nginx:
+          stableIngress: {{ .Values.rollouts.canary.trafficRouting.nginx.stableIngress }}
+      {{- end }}
       {{- with .Values.rollouts.canary.steps }}
       steps:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-  {{- end }}
+    {{- end }}
 {{- end }}

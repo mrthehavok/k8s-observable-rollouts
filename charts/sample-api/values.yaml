@@ -65,25 +65,37 @@ metrics:
 
 rollouts:
   enabled: true
-  strategy: blueGreen # Options: blueGreen | canary
+  strategy: canary # Options: blueGreen | canary
   canary:
+    enabled: true
+    trafficRouting:
+      nginx:
+        stableIngress: { { include "sample-api.fullname" . } }
     # Example:
     # steps:
     #   - setWeight: 20
-    #   - pause: { duration: 10 }
-    steps: []
+    #   - pause: {}
+    steps:
+      - setWeight: 20
+      - pause: {}
   blueGreen:
-    autoPromotionEnabled: true
+    enabled: false
+    autoPromotionEnabled: false
     autoPromotionSeconds: 0
+  rollbackWindow:
+    revisions: 10
+  restartAt: ""
 
 config:
   enabled: false
   data: {}
 
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
   hosts:
     - host: sample-api.local
       paths:

@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -13,17 +14,20 @@ from app.middleware import RequestMetricsMiddleware
 from app.routes import demo, health, info, root
 from app.version import version_info
 
+# Setup logging
+logging.basicConfig(level=settings.LOG_LEVEL.upper())
+logger = logging.getLogger(__name__)
+
+
 # Lifespan context manager for startup/shutdown
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print(f"Starting {settings.APP_NAME} v{version_info.version}")
+    logger.info(f"Starting {settings.APP_NAME} v{version_info.version}")
     metrics_registry.initialize()
     yield
     # Shutdown
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 
 # Create FastAPI app
