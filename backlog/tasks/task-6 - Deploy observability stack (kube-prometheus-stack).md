@@ -4,7 +4,7 @@ title: "Deploy observability stack (kube-prometheus-stack)"
 status: "To Do"
 depends_on: ["task-2"]
 created: 2025-01-08
-updated: 2025-01-08
+updated: 2025-08-11
 ---
 
 ## Description
@@ -22,6 +22,7 @@ Deploy a comprehensive observability stack using kube-prometheus-stack (Promethe
 - [ ] Application-specific dashboard for sample-api
 - [ ] Critical alerts defined and tested
 - [ ] Metrics storage optimized for local environment
+- [ ] Basic AnalysisTemplate for automated canary analysis is defined and available for Argo Rollouts
 
 ## Session History
 
@@ -45,6 +46,7 @@ Deploy a comprehensive observability stack using kube-prometheus-stack (Promethe
 - Design dashboard layouts for key metrics
 - Define SLIs/SLOs for sample application
 - Configure persistent storage for metrics
+- Create a basic Argo Rollouts AnalysisTemplate and wire Helm values to enable/parameterize it; plan to reference it from canary steps later
 
 ## Notes
 
