@@ -1,338 +1,164 @@
 #!/usr/bin/env bash
-# Minikube dev control: start | status | stop
-# - start: starts Minikube, dashboard (bg), tunnel (bg), and port-forwards all Services in a namespace
-# - status: verifies cluster components, shows dashboard URL, tunnel/process state, services and forwards
-# - stop: stops all forwards, dashboard, tunnel, and Minikube
-#
-# Env overrides:
-#   MINIKUBE_PROFILE=minikube
-#   NAMESPACE=sample-app
-#   PF_PIDFILE=.minikube-pf-${NAMESPACE}.pids
-#   DASH_PIDFILE=.minikube-dashboard.pid
-#   TUNNEL_PIDFILE=.minikube-tunnel.pid
-#
 set -euo pipefail
 
+# Simple Minikube dev control script: start | status | stop
+# - start: starts Minikube, Dashboard (bg), Tunnel (bg), Argo CD port-forward (bg), optional Qdrant
+# - status: shows cluster health and access URLs
+# - stop: stops port-forwards, dashboard, tunnel, qdrant, and Minikube
+
+# Defaults
 PROFILE="${MINIKUBE_PROFILE:-minikube}"
 NAMESPACE="${NAMESPACE:-sample-app}"
-PF_PIDFILE_DEFAULT=".minikube-pf-${NAMESPACE}.pids"
-PF_PIDFILE="${PF_PIDFILE:-$PF_PIDFILE_DEFAULT}"
-DASH_PIDFILE="${DASH_PIDFILE:-.minikube-dashboard.pid}"
-TUNNEL_PIDFILE="${TUNNEL_PIDFILE:-.minikube-tunnel.pid}"
-# Allow disabling tunnel to avoid sudo dependency in non-interactive environments
-TUNNEL_ENABLED="${TUNNEL_ENABLED:-true}"
+ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
 
-# Qdrant docker settings (background service)
+# Minikube settings
+K8S_VERSION="${K8S_VERSION:-v1.33.1}"
+MEMORY="${MEMORY:-8192}"
+CPUS="${CPUS:-4}"
+DISK_SIZE="${DISK_SIZE:-20g}"
+DRIVER="${DRIVER:-docker}"
+
+# Runtime artifacts
+DASH_PIDFILE=".minikube-dashboard.pid"
+TUNNEL_PIDFILE=".minikube-tunnel.pid"
+ARGOCD_PF_PIDFILE=".minikube-argocd.pid"
+
+# Qdrant settings (optional)
 QDRANT_IMAGE="${QDRANT_IMAGE:-qdrant/qdrant}"
 QDRANT_CONTAINER="${QDRANT_CONTAINER:-qdrant-dev}"
 QDRANT_PORT="${QDRANT_PORT:-6333}"
 QDRANT_ENABLED="${QDRANT_ENABLED:-true}"
-# Minikube wait controls (tunable)
-WAIT_TARGETS="${MINIKUBE_WAIT_TARGETS:-all}"
-WAIT_TIMEOUT="${MINIKUBE_WAIT_TIMEOUT:-8m}"
 
 log() { printf '[%s] %s\n' "$(date -Is)" "$*"; }
 err() { printf '[%s] ERROR: %s\n' "$(date -Is)" "$*" >&2; }
-die() { err "$*"; exit 1; }
-need() { command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"; }
 
-deps() {
-  need minikube
-  need kubectl
-  # Docker is optional; if missing, disable Qdrant integration gracefully
-  if [[ "${QDRANT_ENABLED}" == "true" ]]; then
-    if ! command -v docker >/dev/null 2>&1; then
-      err "docker not found; disabling Qdrant integration for this session"
-      QDRANT_ENABLED="false"
-    fi
-  fi
-}
+have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
-# Resilient Minikube start helpers
-is_cluster_running() {
-  local out
-  out="$(minikube status -p "${PROFILE}" 2>/dev/null || true)"
-  grep -q "host: Running" <<<"${out}" && \
-  grep -q "kubelet: Running" <<<"${out}" && \
-  grep -q "apiserver: Running" <<<"${out}"
-}
+start_minikube() {
+  log "Disabling potentially problematic addons..."
+  minikube addons disable registry -p "${PROFILE}" || true
+  minikube addons disable storage-provisioner -p "${PROFILE}" || true
 
-start_minikube_resilient() {
-  if is_cluster_running; then
-    log "Minikube already running (profile=${PROFILE})"
-    return 0
-  fi
   log "Starting Minikube (profile=${PROFILE})..."
-  set +e
-  minikube start -p "${PROFILE}" --wait="${WAIT_TARGETS}" --wait-timeout="${WAIT_TIMEOUT}"
-  local rc=$?
-  set -e
-  if [[ ${rc} -ne 0 ]]; then
-    err "minikube start exited with code ${rc}. Verifying cluster health..."
-    if is_cluster_running; then
-      log "Cluster appears healthy despite start error; continuing."
-      return 0
-    fi
-    err "Cluster not healthy; retrying with relaxed waits..."
-    set +e
-    minikube start -p "${PROFILE}" --wait="apiserver,kubelet" --wait-timeout="5m"
-    rc=$?
-    set -e
-    if [[ ${rc} -ne 0 ]] && ! is_cluster_running; then
-      die "Minikube failed to start after retry. See: minikube logs -p ${PROFILE}"
-    fi
-  fi
-  log "Minikube started."
+  minikube start \
+    -p "${PROFILE}" \
+    --driver="${DRIVER}" \
+    --kubernetes-version="${K8S_VERSION}" \
+    --memory="${MEMORY}" \
+    --cpus="${CPUS}" \
+    --disk-size="${DISK_SIZE}" \
+    --container-runtime=containerd \
+    --addons=ingress,metrics-server,dashboard \
+    --extra-config=kubelet.housekeeping-interval=10s
+
+  # Wait for nodes (best-effort)
+  kubectl wait --for=condition=ready nodes --all --timeout=300s >/dev/null 2>&1 || true
+  log "Minikube start attempted. Health check:"
+  minikube status -p "${PROFILE}" || true
 }
 
-dashboard_start_bg() {
-  # Get URL (non-blocking) and open if possible, then run dashboard in bg for proxy
-  local url=""
-  if command -v timeout >/dev/null 2>&1; then
-    url="$(timeout 3s minikube dashboard -p "${PROFILE}" --url 2>/dev/null || true)"
-  fi
-  if [[ -n "${url}" ]]; then
-    log "Dashboard URL: ${url}"
-    if command -v xdg-open >/dev/null 2>&1; then xdg-open "${url}" >/dev/null 2>&1 || true; fi
-  fi
-  # Run proxy in background
+start_dashboard_bg() {
+  log "Starting Kubernetes Dashboard in background..."
   nohup minikube dashboard -p "${PROFILE}" >/dev/null 2>&1 &
   echo $! > "${DASH_PIDFILE}"
-  log "Dashboard started (PID=$(cat "${DASH_PIDFILE}"))"
+  log "Dashboard PID=$(cat "${DASH_PIDFILE}")"
 }
 
-dashboard_status() {
-  local have_pid="false"
-  if [[ -f "${DASH_PIDFILE}" ]]; then
-    local pid; pid="$(cat "${DASH_PIDFILE}")"
-    if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
-      log "Dashboard process running (PID=${pid})"
-      have_pid="true"
-    else
-      log "Dashboard process not running (PID file present but stale)"
-    fi
+start_tunnel_bg() {
+  log "Starting Minikube tunnel in background..."
+  if have_cmd sudo && sudo -n true 2>/dev/null; then
+    nohup sudo -E minikube tunnel -p "${PROFILE}" >/dev/null 2>&1 &
   else
-    log "Dashboard PID file not found (dashboard may be running from another session)"
+    nohup minikube tunnel -p "${PROFILE}" >/dev/null 2>&1 &
   fi
-  # Only attempt URL lookup if a dashboard process is known-running; guard with timeout to avoid hanging.
-  if [[ "${have_pid}" == "true" ]] && command -v timeout >/dev/null 2>&1; then
-    local url; url="$(timeout 2s minikube dashboard -p "${PROFILE}" --url 2>/dev/null || true)"
-    [[ -n "${url}" ]] && log "Dashboard URL: ${url}"
-  fi
-  return 0
-}
-
-dashboard_stop() {
-  if [[ -f "${DASH_PIDFILE}" ]]; then
-    local pid; pid="$(cat "${DASH_PIDFILE}")"
-    if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
-      log "Stopping dashboard (PID=${pid})"
-      kill "${pid}" 2>/dev/null || true
-    fi
-    rm -f "${DASH_PIDFILE}"
-  fi
-}
-
-tunnel_start_bg() {
-  if [[ "${TUNNEL_ENABLED}" != "true" ]]; then
-    log "Tunnel disabled via TUNNEL_ENABLED=false; skipping minikube tunnel."
-    return 0
-  fi
-  log "Starting minikube tunnel in background..."
-  # Require sudo but avoid hanging on password prompts in non-interactive sessions
-  if ! command -v sudo >/dev/null 2>&1; then
-    err "sudo not found; skipping tunnel. You can run manually: 'sudo minikube tunnel -p ${PROFILE}'"
-    return 0
-  fi
-  # Validate sudo can run without password prompt (cached credentials)
-  if ! sudo -n true 2>/dev/null; then
-    err "sudo password required; skipping background tunnel. Run manually: 'sudo minikube tunnel -p ${PROFILE}'"
-    return 0
-  fi
-  # Start in background and record PID; try to capture real tunnel PID
-  sudo -E nohup minikube tunnel -p "${PROFILE}" >/dev/null 2>&1 &
   echo $! > "${TUNNEL_PIDFILE}"
-  sleep 1
-  local tpid; tpid="$(pgrep -f "minikube tunnel -p ${PROFILE}" | head -n1 || true)"
-  if [[ -n "${tpid}" ]]; then
-    echo "${tpid}" > "${TUNNEL_PIDFILE}"
-  fi
-  log "Tunnel started (PID=$(cat "${TUNNEL_PIDFILE}"))"
+  log "Tunnel PID=$(cat "${TUNNEL_PIDFILE}")"
 }
 
-tunnel_status() {
-  if [[ "${TUNNEL_ENABLED}" != "true" ]]; then
-    log "Tunnel disabled via TUNNEL_ENABLED=false"
+start_argocd_pf_bg() {
+  if ! kubectl get ns "${ARGOCD_NAMESPACE}" >/dev/null 2>&1; then
+    log "Argo CD namespace '${ARGOCD_NAMESPACE}' not found; skipping port-forward."
     return 0
   fi
-  local pids=""
-  if [[ -f "${TUNNEL_PIDFILE}" ]]; then
-    pids="$(cat "${TUNNEL_PIDFILE}")"
-  else
-    pids="$(pgrep -f "minikube tunnel -p ${PROFILE}" || true)"
-  fi
-  if [[ -n "${pids}" ]]; then
-    log "Tunnel running (PID(s)=${pids})"
-  else
-    log "Tunnel not running"
-  fi
-  return 0
-}
-
-tunnel_stop() {
-  if [[ "${TUNNEL_ENABLED}" != "true" ]]; then
-    log "Tunnel disabled via TUNNEL_ENABLED=false; nothing to stop."
+  if ! kubectl -n "${ARGOCD_NAMESPACE}" get svc argocd-server >/dev/null 2>&1; then
+    log "Argo CD service not found; skipping port-forward."
     return 0
   fi
-  if [[ -f "${TUNNEL_PIDFILE}" ]]; then
-    local pid; pid="$(cat "${TUNNEL_PIDFILE}")"
-    if [[ -n "${pid}" ]]; then
-      log "Stopping tunnel (PID=${pid})"
-      if command -v sudo >/dev/null 2>&1; then
-        sudo kill "${pid}" 2>/dev/null || true
-      else
-        kill "${pid}" 2>/dev/null || true
-      fi
-    fi
-    rm -f "${TUNNEL_PIDFILE}"
-  fi
-  # Fallback: kill any residual tunnel for this profile
-  local pids; pids="$(pgrep -f "minikube tunnel -p ${PROFILE}" || true)"
-  if [[ -n "${pids}" ]]; then
-    log "Stopping remaining tunnel processes: ${pids}"
-    if command -v sudo >/dev/null 2>&1; then
-      sudo pkill -f "minikube tunnel -p ${PROFILE}" || true
-    else
-      pkill -f "minikube tunnel -p ${PROFILE}" || true
-    fi
-  fi
+  log "Starting Argo CD port-forward 127.0.0.1:8080 -> ${ARGOCD_NAMESPACE}/argocd-server:443 ..."
+  nohup kubectl -n "${ARGOCD_NAMESPACE}" port-forward svc/argocd-server 8080:443 >/dev/null 2>&1 &
+  echo $! > "${ARGOCD_PF_PIDFILE}"
+  log "Argo CD port-forward PID=$(cat "${ARGOCD_PF_PIDFILE}")"
 }
 
-# Qdrant (Vector DB) helpers
-qdrant_start_bg() {
+start_qdrant_bg() {
   if [[ "${QDRANT_ENABLED}" != "true" ]]; then
-    log "Qdrant integration disabled"
+    log "Qdrant disabled (QDRANT_ENABLED=false)."
     return 0
   fi
-  # Start qdrant in background if not running
-  local running
-  running="$(docker inspect -f '{{.State.Running}}' "${QDRANT_CONTAINER}" 2>/dev/null || echo "false")"
-  if [[ "${running}" == "true" ]]; then
-    log "Qdrant already running (container=${QDRANT_CONTAINER})"
+  if ! have_cmd docker; then
+    err "docker not found; skipping Qdrant."
     return 0
   fi
-  if docker ps -a --filter "name=^/${QDRANT_CONTAINER}$" --format '{{.Names}}' | grep -qx "${QDRANT_CONTAINER}"; then
-    log "Starting existing Qdrant container (${QDRANT_CONTAINER})..."
-    docker start "${QDRANT_CONTAINER}" >/dev/null 2>&1 || true
-  else
-    log "Running Qdrant container in background: ${QDRANT_IMAGE} (port ${QDRANT_PORT})"
-    docker run -d --name "${QDRANT_CONTAINER}" -p "${QDRANT_PORT}:${QDRANT_PORT}" "${QDRANT_IMAGE}" >/dev/null 2>&1 || true
+  # Ensure no old container is lingering
+  if docker ps -a --format '{{.Names}}' | grep -qx "${QDRANT_CONTAINER}"; then
+    log "Removing existing Qdrant container..."
+    docker rm -f "${QDRANT_CONTAINER}" >/dev/null
   fi
-  local status; status="$(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || echo "unknown")"
-  log "Qdrant started. Status: ${status}"
+  log "Running Qdrant container: ${QDRANT_IMAGE} (port ${QDRANT_PORT})"
+  docker run -d --name "${QDRANT_CONTAINER}" -p "${QDRANT_PORT}:${QDRANT_PORT}" "${QDRANT_IMAGE}" >/dev/null
 }
 
-qdrant_status() {
-  if [[ "${QDRANT_ENABLED}" != "true" ]]; then
-    log "Qdrant integration disabled"
+get_dashboard_url() {
+  local url
+  url="$(minikube dashboard -p "${PROFILE}" --url 2>/dev/null || true)"
+  echo "${url}"
+}
+
+get_argocd_url() {
+  # Prefer port-forward URL if running
+  if [[ -f "${ARGOCD_PF_PIDFILE}" ]] && kill -0 "$(cat "${ARGOCD_PF_PIDFILE}" 2>/dev/null || echo 0)" 2>/dev/null; then
+    echo "https://127.0.0.1:8080"
     return 0
   fi
-  local status
-  status="$(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || true)"
-  if [[ "${status}" == "running" ]]; then
-    local cid; cid="$(docker ps --filter "name=^/${QDRANT_CONTAINER}$" --format '{{.ID}}' | head -n1)"
-    log "Qdrant status: running (container=${QDRANT_CONTAINER}, id=${cid}, port=${QDRANT_PORT})"
-  elif [[ -n "${status}" ]]; then
-    log "Qdrant status: ${status} (container=${QDRANT_CONTAINER})"
-  else
-    log "Qdrant status: not found"
+  # Try LoadBalancer IP/hostname
+  if kubectl -n "${ARGOCD_NAMESPACE}" get svc argocd-server >/dev/null 2>&1; then
+    local ip host
+    ip="$(kubectl -n "${ARGOCD_NAMESPACE}" get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+    host="$(kubectl -n "${ARGOCD_NAMESPACE}" get svc argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)"
+    if [[ -n "${ip}" ]]; then echo "https://${ip}"; return 0; fi
+    if [[ -n "${host}" ]]; then echo "https://${host}"; return 0; fi
   fi
-  return 0
-}
-
-qdrant_stop() {
-  if [[ "${QDRANT_ENABLED}" != "true" ]]; then
-    log "Qdrant integration disabled"
-    return 0
-  fi
-  if docker ps -a --filter "name=^/${QDRANT_CONTAINER}$" --format '{{.Names}}' | grep -qx "${QDRANT_CONTAINER}"; then
-    local status; status="$(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || true)"
-    if [[ "${status}" == "running" ]]; then
-      log "Stopping Qdrant container (${QDRANT_CONTAINER})..."
-      docker stop "${QDRANT_CONTAINER}" >/dev/null 2>&1 || true
-      log "Qdrant stopped."
-    else
-      log "Qdrant not running (status=${status:-unknown})."
-    fi
-  else
-    log "Qdrant container not present (${QDRANT_CONTAINER})."
-  fi
-}
- 
-pf_all_start() {
-  : > "${PF_PIDFILE}"
-  # For each service, forward first port (port:port)
-  local lines; lines="$(kubectl -n "${NAMESPACE}" get svc -o jsonpath='{range .items[*]}{.metadata.name}{"|"}{range .spec.ports[0:1]}{.port}{"\n"}{end}{end}' 2>/dev/null || true)"
-  local count=0
-  while IFS= read -r line; do
-    [[ -z "${line}" ]] && continue
-    local name="${line%%|*}"
-    local port="${line##*|}"
-    [[ -z "${port}" || ! "${port}" =~ ^[0-9]+$ ]] && continue
-    nohup kubectl -n "${NAMESPACE}" port-forward "svc/${name}" "${port}:${port}" --address 0.0.0.0 >/dev/null 2>&1 &
-    echo $! >> "${PF_PIDFILE}"
-    log "Port-forward: ${name} ${port}->${port} (PID=$!)"
-    count=$((count+1))
-  done <<< "${lines}"
-  log "Started ${count} port-forward(s) in namespace '${NAMESPACE}'. PIDs tracked in ${PF_PIDFILE}"
-}
-
-pf_all_status() {
-  if [[ -f "${PF_PIDFILE}" ]]; then
-    while IFS= read -r pid; do
-      [[ -z "${pid}" ]] && continue
-      if kill -0 "${pid}" 2>/dev/null; then
-        log "Port-forward running (PID=${pid})"
-      else
-        log "Port-forward not running (PID=${pid})"
-      fi
-    done < "${PF_PIDFILE}"
-  else
-    log "No port-forward PID file (${PF_PIDFILE})."
-  fi
-  return 0
-}
-
-pf_all_stop() {
-  if [[ -f "${PF_PIDFILE}" ]]; then
-    log "Stopping port-forwards from ${PF_PIDFILE}..."
-    while IFS= read -r pid; do
-      [[ -z "${pid}" ]] && continue
-      if kill -0 "${pid}" 2>/dev/null; then
-        kill "${pid}" 2>/dev/null || true
-        log "Stopped PID ${pid}"
-      fi
-    done < "${PF_PIDFILE}"
-    rm -f "${PF_PIDFILE}"
-  else
-    log "No port-forwards to stop."
-  fi
+  echo ""
 }
 
 cmd_start() {
-  deps
-  start_minikube_resilient
+  start_minikube
+  start_dashboard_bg
+  start_tunnel_bg
+  start_argocd_pf_bg
+  start_qdrant_bg
 
-  dashboard_start_bg
-  tunnel_start_bg
-  pf_all_start
-  qdrant_start_bg
- 
-  log "Start complete. Use './scripts/minikube_dev.sh status' to verify."
+  # Access summary (print at the very end)
+  local mk_ip dash_url argocd_url
+  mk_ip="$(minikube ip -p "${PROFILE}" 2>/dev/null || true)"
+  dash_url="$(get_dashboard_url)"
+  argocd_url="$(get_argocd_url)"
+  echo ""
+  log "Access:"
+  [[ -n "${mk_ip}" ]] && log "Minikube IP - ${mk_ip}"
+  if [[ -n "${dash_url}" ]]; then
+    log "Dashboard - ${dash_url}"
+  else
+    log "Dashboard - preparing (try again in a few seconds)"
+  fi
+  if [[ -n "${argocd_url}" ]]; then
+    log "Argo CD - ${argocd_url}"
+  else
+    log "Argo CD - not available yet"
+  fi
 }
 
 cmd_status() {
-  deps
   log "Minikube status (profile=${PROFILE}):"
   minikube status -p "${PROFILE}" || true
   echo
@@ -345,23 +171,80 @@ cmd_status() {
   log "Namespace services (${NAMESPACE}):"
   kubectl -n "${NAMESPACE}" get svc || true
   echo
-  log "Namespace pods (${NAMESPACE}):"
-  kubectl -n "${NAMESPACE}" get pods -o wide || true
+  # PIDs
+  if [[ -f "${DASH_PIDFILE}" ]] && kill -0 "$(cat "${DASH_PIDFILE}" 2>/dev/null || echo 0)" 2>/dev/null; then
+    log "Dashboard running (PID=$(cat "${DASH_PIDFILE}") )"
+  else
+    log "Dashboard not running"
+  fi
+  if [[ -f "${TUNNEL_PIDFILE}" ]] && kill -0 "$(cat "${TUNNEL_PIDFILE}" 2>/dev/null || echo 0)" 2>/dev/null; then
+    log "Tunnel running (PID=$(cat "${TUNNEL_PIDFILE}") )"
+  else
+    log "Tunnel not running"
+  fi
+  if [[ -f "${ARGOCD_PF_PIDFILE}" ]] && kill -0 "$(cat "${ARGOCD_PF_PIDFILE}" 2>/dev/null || echo 0)" 2>/dev/null; then
+    log "Argo CD port-forward running (PID=$(cat "${ARGOCD_PF_PIDFILE}") )"
+  else
+    log "Argo CD port-forward not running"
+  fi
+  if have_cmd docker; then
+    local qstatus
+    qstatus="$(docker inspect -f '{{.State.Status}}' "${QDRANT_CONTAINER}" 2>/dev/null || echo "")"
+    if [[ -n "${qstatus}" ]]; then
+      log "Qdrant container status: ${qstatus}"
+    else
+      log "Qdrant container: not present"
+    fi
+  fi
   echo
-  dashboard_status
-  tunnel_status
-  pf_all_status
-  qdrant_status
+  # URLs
+  local dash_url argocd_url mk_ip
+  mk_ip="$(minikube ip -p "${PROFILE}" 2>/dev/null || true)"
+  dash_url="$(get_dashboard_url)"
+  argocd_url="$(get_argocd_url)"
+  log "Access:"
+  [[ -n "${mk_ip}" ]] && log "Minikube IP - ${mk_ip}"
+  [[ -n "${dash_url}" ]] && log "Dashboard - ${dash_url}" || log "Dashboard - unavailable"
+  [[ -n "${argocd_url}" ]] && log "Argo CD - ${argocd_url}" || log "Argo CD - unavailable"
 }
 
 cmd_stop() {
-  deps
-  log "Stopping dev helpers (port-forwards, dashboard, tunnel, qdrant)..."
-  pf_all_stop
-  dashboard_stop
-  tunnel_stop
-  qdrant_stop
-
+  log "Stopping dev helpers..."
+  # dashboard
+  if [[ -f "${DASH_PIDFILE}" ]]; then
+    pid="$(cat "${DASH_PIDFILE}" 2>/dev/null || echo "")"
+    if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
+      kill "${pid}" 2>/dev/null || true
+      log "Stopped dashboard (PID=${pid})"
+    fi
+    rm -f "${DASH_PIDFILE}"
+  fi
+  # tunnel
+  if [[ -f "${TUNNEL_PIDFILE}" ]]; then
+    pid="$(cat "${TUNNEL_PIDFILE}" 2>/dev/null || echo "")"
+    if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
+      if have_cmd sudo; then sudo kill "${pid}" 2>/dev/null || true; else kill "${pid}" 2>/dev/null || true; fi
+      log "Stopped tunnel (PID=${pid})"
+    fi
+    rm -f "${TUNNEL_PIDFILE}"
+  fi
+  # argocd pf
+  if [[ -f "${ARGOCD_PF_PIDFILE}" ]]; then
+    pid="$(cat "${ARGOCD_PF_PIDFILE}" 2>/dev/null || echo "")"
+    if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
+      kill "${pid}" 2>/dev/null || true
+      log "Stopped Argo CD port-forward (PID=${pid})"
+    fi
+    rm -f "${ARGOCD_PF_PIDFILE}"
+  fi
+  # qdrant
+  if [[ "${QDRANT_ENABLED}" == "true" ]] && have_cmd docker; then
+    if docker ps -a --format '{{.Names}}' | grep -qx "${QDRANT_CONTAINER}"; then
+      log "Stopping and removing Qdrant container (${QDRANT_CONTAINER})..."
+      docker rm -f "${QDRANT_CONTAINER}" >/dev/null 2>&1 || true
+    fi
+  fi
+  # minikube
   log "Stopping Minikube (profile=${PROFILE})..."
   minikube stop -p "${PROFILE}" || true
   log "Stopped."
@@ -372,16 +255,20 @@ usage() {
 Usage: $(basename "$0") {start|status|stop}
 
 Commands:
-  start   Start Minikube, dashboard (bg), tunnel (bg), and port-forward all services in ${NAMESPACE}
-  status  Show cluster, services, dashboard/tunnel/port-forward status
-  stop    Stop port-forwards, dashboard, tunnel, then stop Minikube
+  start   Start Minikube, Dashboard (bg), Tunnel (bg), Argo CD port-forward (bg), and optional Qdrant
+  status  Show cluster health and access URLs
+  stop    Stop background helpers and Minikube
 
 Env:
   MINIKUBE_PROFILE (default: ${PROFILE})
   NAMESPACE (default: ${NAMESPACE})
-  PF_PIDFILE (default: ${PF_PIDFILE})
-  DASH_PIDFILE (default: ${DASH_PIDFILE})
-  TUNNEL_PIDFILE (default: ${TUNNEL_PIDFILE})
+  ARGOCD_NAMESPACE (default: ${ARGOCD_NAMESPACE})
+  K8S_VERSION (default: ${K8S_VERSION})
+  MEMORY (default: ${MEMORY})
+  CPUS (default: ${CPUS})
+  DISK_SIZE (default: ${DISK_SIZE})
+  DRIVER (default: ${DRIVER})
+  QDRANT_ENABLED (default: ${QDRANT_ENABLED})
 EOF
 }
 
