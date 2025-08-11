@@ -70,7 +70,7 @@ rollouts:
     enabled: true
     trafficRouting:
       nginx:
-        stableIngress: {{ include "sample-api.fullname" . }}
+        stableIngress: { { include "sample-api.fullname" . } }
     # Example:
     # steps:
     #   - setWeight: 20
@@ -82,6 +82,9 @@ rollouts:
     enabled: false
     autoPromotionEnabled: false
     autoPromotionSeconds: 0
+  rollbackWindow:
+    revisions: 10
+  restartAt: ""
 
 config:
   enabled: false

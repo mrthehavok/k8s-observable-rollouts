@@ -8,6 +8,10 @@ metadata:
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 2
+  {{- with .Values.rollouts.rollbackWindow }}
+  rollbackWindow:
+    revisions: {{ .revisions }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "sample-api.selectorLabels" . | nindent 6 }}
@@ -16,8 +20,12 @@ spec:
       labels:
         {{- include "sample-api.selectorLabels" . | nindent 8 }}
       {{- $hasMetrics := and .Values.metrics.enabled .Values.metrics.scrape.enabled }}
-      {{- if or $hasMetrics .Values.metrics.annotations .Values.podAnnotations }}
+      {{- if or $hasMetrics .Values.metrics.annotations .Values.podAnnotations .Values.rollouts.restartAt }}
       annotations:
+        {{- if .Values.rollouts.restartAt }}
+        kubectl.kubernetes.io/restartedAt: {{ .Values.rollouts.restartAt | quote }}
+        rollouts.argoproj.io/restartedAt: {{ .Values.rollouts.restartAt | quote }}
+        {{- end }}
         {{- if $hasMetrics }}
         prometheus.io/scrape: "true"
         prometheus.io/path: {{ .Values.metrics.path | quote }}
