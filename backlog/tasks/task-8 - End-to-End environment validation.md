@@ -4,7 +4,7 @@ title: "End-to-End environment validation"
 status: "To Do"
 depends_on: ["task-2", "task-4"]
 created: 2025-08-09
-updated: 2025-08-09
+updated: 2025-08-11
 ---
 
 ## Description
@@ -25,7 +25,7 @@ Validate that the full local environment is up and healthy end-to-end with zero 
   - [ ] `kubectl get nodes` shows Ready nodes
 - [ ] Argo CD:
   - [ ] Namespace `argocd` exists; core pods are Running and Ready
-  - [ ] Application `app-of-apps` is Synced/Healthy
+  - [ ] All Applications are Synced/Healthy
 - [ ] Argo Rollouts:
   - [ ] CRD `rollouts.argoproj.io` exists
   - [ ] Namespace `argo-rollouts` exists and controller Deployment is Available
@@ -39,9 +39,14 @@ Validate that the full local environment is up and healthy end-to-end with zero 
   - [ ] `/health/live` returns 200
   - [ ] `/metrics` returns text exposition (line count > 0)
 - [ ] Dev helper script:
+
   - [ ] `./scripts/minikube_dev.sh start` starts cluster, dashboard, tunnel, and forwards ports
   - [ ] `./scripts/minikube_dev.sh status` reports all expected components up and forwards active
   - [ ] `./scripts/minikube_dev.sh stop` tears down forwards, dashboard, tunnel, and stops Minikube
+
+- [ ] UI and dashboards:
+  - [ ] All dashboards and links open correctly without errors
+  - [ ] Argo CD web UI is reachable; all Applications are Synced/Healthy (green) with no warnings or alerts
 
 ## Session History
 
