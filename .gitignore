@@ -81,3 +81,9 @@ docker-compose.override.yml
 
 # Node modules
 node_modules/
+# Dev helper runtime files (PID/port artifacts)
+.minikube-dashboard.pid
+.minikube-tunnel.pid
+.minikube-pf-*.pids
+.minikube-argocd.pid
+.minikube-argocd.port
