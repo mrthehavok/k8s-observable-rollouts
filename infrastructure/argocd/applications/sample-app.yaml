@@ -21,7 +21,7 @@ spec:
         - values.yaml
       parameters:
         - name: image.tag
-          value: latest
+          value: v0.2.0
   destination:
     server: https://kubernetes.default.svc
     namespace: sample-app
