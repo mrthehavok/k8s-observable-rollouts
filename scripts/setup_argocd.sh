@@ -56,10 +56,10 @@ fi
 # Configure ArgoCD CLI
 echo "🔧 Configuring ArgoCD CLI..."
 
-echo "🔌 Starting port-forward to ArgoCD server in the background..."
-kubectl port-forward svc/argocd-server -n ${ARGOCD_NAMESPACE} 8080:443 >/dev/null 2>&1 &
-PORT_FORWARD_PID=$!
-sleep 5 # Wait for the port-forward to be established
+#echo "🔌 Starting port-forward to ArgoCD server in the background..."
+#kubectl port-forward svc/argocd-server -n ${ARGOCD_NAMESPACE} 8080:443 >/dev/null 2>&1 &
+#PORT_FORWARD_PID=$!
+#sleep 5 # Wait for the port-forward to be established
 
 argocd login localhost:8080 --username admin --password "${ARGOCD_PASSWORD}" --insecure --plaintext
 
@@ -72,4 +72,4 @@ echo ""
 echo "✅ Argo CD is ready."
 echo "🚀 The setup script has finished. The port-forward process was stopped."
 echo "To access the UI, run this command in your terminal:"
-echo "kubectl -n argocd port-forward svc/argocd-server 8080:443"
+kubectl -n argocd port-forward svc/argocd-server 8080:443

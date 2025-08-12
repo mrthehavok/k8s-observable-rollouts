@@ -327,3 +327,14 @@ kubectl -n sample-app describe ingress
   minikube delete
   ```
   Helpers reference: [scripts/minikube_dev.sh](scripts/minikube_dev.sh)
+
+My commands
+./scripts/setup_minikube.sh
+./scripts/setup_argocd.sh
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+kubectl -n argocd apply -f infrastructure/argocd/applications/app-of-apps.yaml
+kubectl -n argocd apply -f infrastructure/argocd/applications/argo-rollouts.yaml
+helm repo update
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+kubectl apply -k https://github.com/argoproj/argo-rollouts/manifests/crds\?ref\=stablerds\?ref\=stable
+kubectl -n argo-rollouts delete deployment argo-rollouts
