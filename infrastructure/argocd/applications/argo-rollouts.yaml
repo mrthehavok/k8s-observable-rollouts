@@ -12,6 +12,7 @@ spec:
     chart: argo-rollouts
     targetRevision: 2.40.3
     helm:
+      skipCrds: true
       values: |
         dashboard:
           enabled: true
