@@ -328,13 +328,70 @@ kubectl -n sample-app describe ingress
   ```
   Helpers reference: [scripts/minikube_dev.sh](scripts/minikube_dev.sh)
 
-My commands
-./scripts/setup_minikube.sh
-./scripts/setup_argocd.sh
+## My commands
+
+Quick reference used during bring-up and recovery. Commands are grouped and annotated to be copy-paste friendly.
+
+1. Bootstrap cluster
+
+```bash
+# Start Minikube and core addons; creates namespaces; runs dashboard + tunnel in background
+bash scripts/setup_minikube.sh
+```
+
+2. Install Argo CD and apply App-of-Apps
+
+```bash
+# Helm install Argo CD + configure + apply root app
+bash scripts/setup_argocd.sh
+```
+
+Manual Argo CD UI port-forward (if needed):
+
+```bash
 kubectl -n argocd port-forward svc/argocd-server 8080:443
+# URL: https://localhost:8080
+```
+
+3. Re-apply root App-of-Apps if needed
+
+```bash
 kubectl -n argocd apply -f infrastructure/argocd/applications/app-of-apps.yaml
-kubectl -n argocd apply -f infrastructure/argocd/applications/argo-rollouts.yaml
+```
+
+4. Argo Rollouts recovery — GitOps preferred
+
+```bash
+# Pre-seed CRDs to avoid Helm/Argo patch conflicts
+kubectl apply -f https://github.com/argoproj/argo-rollouts/releases/latest/download/crds.yaml
+
+# If a conflicting controller deployment exists, remove it so Argo CD can recreate
+kubectl -n argo-rollouts delete deployment argo-rollouts --ignore-not-found
+
+# Ensure pinned Helm version is set in the Argo CD Application, then sync in UI
+# Optional via CLI:
+# argocd app sync argo-rollouts --prune --replace
+```
+
+Fallback — direct install (not recommended long-term):
+
+```bash
 helm repo update
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-kubectl apply -k https://github.com/argoproj/argo-rollouts/manifests/crds\?ref\=stable
-kubectl -n argo-rollouts delete deployment argo-rollouts
+```
+
+5. Access the sample API
+
+```bash
+# Prefer Ingress via sample-api.local after mapping to Minikube IP
+# Or use port-forward; note 8080 may be used by Argo CD, so use 8081 here
+kubectl -n sample-app port-forward svc/sample-api 8081:8000
+```
+
+6. Monitoring remediation
+
+```bash
+# Monitoring fix is tracked in task-10.
+# Summary: pre-seed kube-prometheus-stack CRDs server-side and disable
+# prometheusOperator.admissionWebhooks.* in values, then Argo CD Sync with Replace+Prune.
+```

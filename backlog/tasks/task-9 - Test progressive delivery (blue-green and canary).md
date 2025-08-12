@@ -2,9 +2,9 @@
 id: task-9
 title: "Test progressive delivery (blue-green and canary)"
 status: "To Do"
-depends_on: ["task-8"]
+depends_on: ["task-8", "task-10"]
 created: 2025-08-09
-updated: 2025-08-11
+updated: 2025-08-12
 ---
 
 ## Description
@@ -20,7 +20,6 @@ Test the full progressive delivery workflow for the sample-api application using
 
 - [ ] **Setup:**
   - [ ] Argo Rollouts controller deployed and operational in namespace argo-rollouts
-  - [ ] Rollouts dashboard accessible for monitoring
   - [ ] A new version of the application is built and pushed to GHCR (e.g., with a visible change like a version bump in the UI or API response).
 - [ ] **Blue-Green Strategy:**
   - [ ] Argo CD Application is updated to use the new image tag.
@@ -57,10 +56,11 @@ Test the full progressive delivery workflow for the sample-api application using
 ## Blockers
 
 - The E2E environment from task-8 must be fully healthy and validated before starting.
+- Rollouts/monitoring dashboard verification moved to task-10; will be validated after monitoring stack is fixed.
 
 ## Next Steps
 
-- Verify Argo Rollouts controller status and dashboard accessibility.
+- Verify Argo Rollouts controller status
 - Create a new application version and push the image to GHCR.
 - Execute the blue-green test plan.
 - Execute the canary test plan.
