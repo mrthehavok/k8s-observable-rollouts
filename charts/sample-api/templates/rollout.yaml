@@ -90,8 +90,8 @@ spec:
     blueGreen:
       activeService: {{ include "sample-api.fullname" . | quote }}
       previewService: {{ printf "%s-preview" (include "sample-api.fullname" .) | quote }}
-      autoPromotionEnabled: {{ default true .Values.rollouts.blueGreen.autoPromotionEnabled }}
-      autoPromotionSeconds: {{ default 0 .Values.rollouts.blueGreen.autoPromotionSeconds }}
+      autoPromotionEnabled: {{ .Values.rollouts.blueGreen.autoPromotionEnabled }}
+      autoPromotionSeconds: {{ .Values.rollouts.blueGreen.autoPromotionSeconds }}
     {{- else if and (eq .Values.rollouts.strategy "canary") .Values.rollouts.canary.enabled }}
     canary:
       stableService: {{ include "sample-api.fullname" . | quote }}
