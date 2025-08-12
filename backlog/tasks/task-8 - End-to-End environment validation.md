@@ -1,10 +1,10 @@
 ---
 id: task-8
 title: "End-to-End environment validation"
-status: "To Do"
+status: "In Progress"
 depends_on: ["task-2", "task-4"]
 created: 2025-08-09
-updated: 2025-08-11
+updated: 2025-08-12
 ---
 
 ## Description
@@ -50,6 +50,9 @@ Validate that the full local environment is up and healthy end-to-end with zero 
 
 ## Session History
 
+- 2025-08-12T09:10:59Z — Started README planning for unified onboarding.
+
+- 2025-08-12T09:38:00Z — Implemented authoritative root README with end-to-end guide; validated links and commands. Sections added: Overview, TL;DR, Step-by-step Setup, Validation Checklist, Progressive Delivery, Troubleshooting, Cleanup. See [README.md](README.md) and references [scripts/setup_minikube.sh](scripts/setup_minikube.sh), [scripts/minikube_dev.sh](scripts/minikube_dev.sh), [scripts/setup_argocd.sh](scripts/setup_argocd.sh), [scripts/verify_argocd.sh](scripts/verify_argocd.sh), [infrastructure/argocd/applications/app-of-apps.yaml](infrastructure/argocd/applications/app-of-apps.yaml), [infrastructure/argocd/applications/argo-rollouts.yaml](infrastructure/argocd/applications/argo-rollouts.yaml), [infrastructure/argocd/applications/monitoring.yaml](infrastructure/argocd/applications/monitoring.yaml), [infrastructure/argocd/applications/sample-app.yaml](infrastructure/argocd/applications/sample-app.yaml), [infrastructure/monitoring/templates/grafana-datasources.yaml](infrastructure/monitoring/templates/grafana-datasources.yaml), [infrastructure/monitoring/templates/grafana-dashboards.yaml](infrastructure/monitoring/templates/grafana-dashboards.yaml), [apps/sample-api/app/routes/health.py](apps/sample-api/app/routes/health.py), [apps/sample-api/app/routes/info.py](apps/sample-api/app/routes/info.py), [apps/sample-api/app/metrics.py](apps/sample-api/app/metrics.py).
 <!-- Update with timestamps and outcomes of validation runs -->
 
 ## Decisions Made
