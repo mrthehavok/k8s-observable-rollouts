@@ -65,9 +65,9 @@ metrics:
 
 rollouts:
   enabled: true
-  strategy: canary # Options: blueGreen | canary
+  strategy: blueGreen # Options: blueGreen | canary
   canary:
-    enabled: true
+    enabled: false
     trafficRouting:
       nginx:
         stableIngress: "sample-api"
@@ -79,7 +79,7 @@ rollouts:
       - setWeight: 20
       - pause: {}
   blueGreen:
-    enabled: false
+    enabled: true
     autoPromotionEnabled: false
     autoPromotionSeconds: 0
   rollbackWindow:
