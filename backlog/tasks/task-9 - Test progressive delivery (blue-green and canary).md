@@ -1,7 +1,7 @@
 ---
 id: task-9
 title: "Test progressive delivery (blue-green and canary)"
-status: "In Progress"
+status: "Done"
 depends_on: ["task-8", "task-10"]
 created: 2025-08-09
 updated: 2025-08-12
