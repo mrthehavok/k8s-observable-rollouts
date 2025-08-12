@@ -336,5 +336,5 @@ kubectl -n argocd apply -f infrastructure/argocd/applications/app-of-apps.yaml
 kubectl -n argocd apply -f infrastructure/argocd/applications/argo-rollouts.yaml
 helm repo update
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-kubectl apply -k https://github.com/argoproj/argo-rollouts/manifests/crds\?ref\=stablerds\?ref\=stable
+kubectl apply -k https://github.com/argoproj/argo-rollouts/manifests/crds\?ref\=stable
 kubectl -n argo-rollouts delete deployment argo-rollouts

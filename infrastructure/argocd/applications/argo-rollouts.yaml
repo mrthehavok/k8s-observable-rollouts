@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://argoproj.github.io/argo-helm
     chart: argo-rollouts
-    targetRevision: HEAD
+    targetRevision: 2.40.3
     helm:
       values: |
         dashboard:
