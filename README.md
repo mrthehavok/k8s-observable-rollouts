@@ -19,6 +19,7 @@ All steps prefer project scripts and manifests with precise file links.
 - 5. Progressive Delivery (Optional Smoke Test)
 - 6. Troubleshooting
 - 7. Cleanup
+- 8. Release Management and Versioning
 
 ## 1. Prerequisites
 
@@ -395,3 +396,238 @@ kubectl -n sample-app port-forward svc/sample-api 8081:8000
 # Summary: pre-seed kube-prometheus-stack CRDs server-side and disable
 # prometheusOperator.admissionWebhooks.* in values, then Argo CD Sync with Replace+Prune.
 ```
+
+## 8. Release Management and Versioning
+
+This section describes the end-to-end release flow for the sample-api service, including how to bump versions, build/push images, select a progressive delivery strategy (blue/green or canary), apply changes with Argo CD, and verify success via CLI and the Argo CD UI.
+
+### 8.1 Version bump workflow
+
+1. Decide new version and image tag (immutable tag recommended):
+
+- Example: v0.2.1
+
+2. Update application version string (visible in /api/version and UI):
+
+- File: apps/sample-api/app/version.py
+- Update VersionInfo.version and optionally changelog:
+  - See example pattern in [apps/sample-api/app/version.py](apps/sample-api/app/version.py)
+
+3. Build and push the image to GHCR (requires docker logged into ghcr.io):
+
+```bash
+IMAGE="ghcr.io/mrthehavok/sample-api"
+VERSION="v0.2.1"
+
+# Optional login with env vars if not already logged in:
+# echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+docker build -t "${IMAGE}:${VERSION}" -f apps/sample-api/Dockerfile apps/sample-api
+docker push "${IMAGE}:${VERSION}"
+```
+
+4. Bump chart metadata (optional but recommended to track appVersion):
+
+- File: charts/sample-api/Chart.yaml
+- Set:
+  - version: bump chart version (e.g. 0.1.2)
+  - appVersion: "0.2.1"
+
+### 8.2 GitOps-first (recommended) — update Helm values and let Argo CD sync
+
+1. Update image tag in chart values:
+
+- File: charts/sample-api/values.yaml
+- Keys:
+  - .image.repository: ghcr.io/mrthehavok/sample-api
+  - .image.tag: "v0.2.1"
+
+2. Select strategy (blue/green or canary):
+
+- For Blue/Green:
+  - .rollouts.strategy: blueGreen
+  - .rollouts.blueGreen.enabled: true
+  - .rollouts.canary.enabled: false
+- For Canary:
+  - .rollouts.strategy: canary
+  - .rollouts.canary.enabled: true
+  - .rollouts.canary.steps: define percentage and pause steps
+
+3. Commit and push to the branch watched by the Argo CD Application:
+
+```bash
+git add charts/sample-api/values.yaml charts/sample-api/Chart.yaml apps/sample-api/app/version.py
+git commit -m "release: sample-api v0.2.1 (values tag, appVersion, app version)"
+git push
+```
+
+4. Let Argo CD auto-sync or trigger a manual sync from the UI.
+
+5. Pre-flight validation (optional but recommended):
+
+```bash
+# Lint and template
+helm lint ./charts/sample-api
+helm template sample-api ./charts/sample-api --namespace sample-app > /tmp/sample-api.yaml
+# API-validate manifests (server-side)
+kubectl apply --dry-run=server -n sample-app -f /tmp/sample-api.yaml
+```
+
+### 8.3 Argo CD Application parameter override (explicit tag pin)
+
+If you prefer to pin the image tag via the Application params (overriding chart defaults):
+
+- File: infrastructure/argocd/applications/sample-app.yaml
+- Ensure:
+  - spec.source.helm.parameters:
+    - name: image.tag
+      value: v0.2.1
+
+Apply and force refresh:
+
+```bash
+kubectl -n argocd apply -f infrastructure/argocd/applications/sample-app.yaml
+kubectl -n argocd annotate application sample-api argocd.argoproj.io/refresh=hard --overwrite
+```
+
+Real-time check of current param:
+
+```bash
+kubectl -n argocd get application sample-api \
+  -o jsonpath="{.spec.source.helm.parameters[?(@.name=='image.tag')].value}{'\n'}"
+```
+
+Notes:
+
+- If both values.yaml and Application helm.parameters specify image.tag, the Application param takes precedence.
+- targetRevision can be HEAD or a specific branch. The image.tag param governs the rendered image, independent of Chart.appVersion.
+
+### 8.4 Progressive Delivery: Blue/Green vs Canary
+
+Both strategies are implemented by Argo Rollouts using a Rollout CR rendered from the chart:
+
+- Template: charts/sample-api/templates/rollout.yaml
+- Services:
+  - Stable: charts/sample-api/templates/service.yaml
+  - Blue/Green preview: charts/sample-api/templates/service-preview.yaml
+  - Canary service: charts/sample-api/templates/service-canary.yaml
+
+A) Blue/Green
+
+- Configure:
+  - values.yaml:
+    - rollouts.strategy: blueGreen
+    - rollouts.blueGreen.enabled: true
+    - rollouts.canary.enabled: false
+- Flow:
+  - Argo Rollouts creates a preview ReplicaSet and preview Service (…-preview)
+  - Verify preview /api/version (via preview service)
+  - Promote after verification:
+    ```bash
+    kubectl argo rollouts promote sample-api -n sample-app
+    ```
+  - Stable service switches to new RS; old RS scales down per policy.
+
+B) Canary
+
+- Configure:
+  - values.yaml:
+    - rollouts.strategy: canary
+    - rollouts.canary.enabled: true
+    - rollouts.canary.steps: e.g.
+      ```yaml
+      rollouts:
+        canary:
+          steps:
+            - setWeight: 20
+            - pause: {}
+            - setWeight: 100
+      ```
+- Flow:
+  - Rollout starts canary RS
+  - Watch progress:
+    ```bash
+    kubectl argo rollouts get rollout sample-api -n sample-app --watch
+    ```
+  - Verify canary Service (…-canary) /api/version
+  - Promote to 100%:
+    ```bash
+    kubectl argo rollouts promote sample-api -n sample-app --full
+    ```
+
+### 8.5 Forcing and verifying changes via Argo CD and Helm
+
+1. Force refresh Argo CD app (if UI shows stale data):
+
+```bash
+kubectl -n argocd annotate application sample-api \
+  argocd.argoproj.io/refresh=hard --overwrite
+```
+
+2. GUI checks in Argo CD:
+
+- Applications → sample-api → PARAMETERS tab:
+  - image.tag must read v0.2.1
+- Tree → Rollout/sample-api → MANIFEST tab:
+  - spec.template.spec.containers[0].image must be ghcr.io/mrthehavok/sample-api:v0.2.1
+- Pods:
+  - Inspect pod image fields; canary pods should be v0.2.1 during a canary rollout
+  - After promotion, stable pods should be v0.2.1
+
+3. CLI checks:
+
+```bash
+# Rollout status and images
+kubectl argo rollouts get rollout sample-api -n sample-app
+
+# Rollout template image
+kubectl -n sample-app get rollout sample-api \
+  -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
+
+# Pods and their images
+kubectl -n sample-app get pods -l app.kubernetes.io/name=sample-api \
+  -o jsonpath="{range .items[*]}{.metadata.name}{'\t'}{range .status.containerStatuses[*]}{.image}{end}{'\n'}{end}"
+
+# Service-based functional checks (stable and canary when present)
+kubectl -n sample-app run curl-stable --rm -i --restart=Never --image=curlimages/curl:8.10.1 \
+  -- curl -sS http://sample-api:8000/api/version
+
+kubectl -n sample-app run curl-canary --rm -i --restart=Never --image=curlimages/curl:8.10.1 \
+  -- curl -sS http://sample-api-canary:8000/api/version
+```
+
+### 8.6 Rollback
+
+- To previous revision:
+
+```bash
+kubectl argo rollouts undo sample-api -n sample-app
+# Or explicitly:
+# kubectl argo rollouts undo sample-api -n sample-app --to-revision=<N>
+```
+
+- Verify:
+  - Rollout becomes Healthy
+  - spec.template.spec.containers[0].image reflects prior tag
+  - Service checks confirm previous app version
+
+### 8.7 Troubleshooting version/tag mismatches
+
+- Symptom: GUI shows old version
+  - Action:
+    - Refresh app in Argo CD UI
+    - Check PARAMETERS for image.tag
+    - Ensure Application helm.parameters overrides are set to desired vX.Y.Z
+- Symptom: Pods still run old tag after push
+  - Action:
+    - Confirm image pushed with desired tag to ghcr.io
+    - Confirm spec.template image renders to new tag (see CLI checks above)
+    - Restart rollout if needed:
+      ```bash
+      kubectl argo rollouts restart sample-api -n sample-app
+      ```
+- Symptom: Preview/Canary service still points to old RS
+  - Action:
+    - Give controller a few seconds to reconcile
+    - Verify Service selectors and Endpoints
+    - Confirm rollout strategy flags in values.yaml
