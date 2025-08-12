@@ -2,8 +2,8 @@ apiVersion: v2
 name: sample-api
 description: Helm chart for the FastAPI sample microservice (task-4)
 type: application
-version: 0.1.1
-appVersion: "0.2.0"
+version: 0.1.2
+appVersion: "0.2.1"
 keywords:
   - fastapi
   - python
