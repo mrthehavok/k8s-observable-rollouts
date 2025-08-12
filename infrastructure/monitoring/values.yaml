@@ -5,6 +5,12 @@ kube-prometheus-stack:
   defaultRules:
     create: true
 
+  prometheusOperator:
+    admissionWebhooks:
+      enabled: false
+      patch:
+        enabled: false
+
   grafana:
     enabled: true
     adminUser: admin

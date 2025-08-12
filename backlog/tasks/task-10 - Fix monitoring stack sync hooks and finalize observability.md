@@ -1,7 +1,7 @@
 ---
 id: task-10
 title: "Fix monitoring stack sync hooks and finalize observability"
-status: "To Do"
+status: "In Progress"
 depends_on: ["task-8"]
 created: 2025-08-12
 updated: 2025-08-12
@@ -42,6 +42,7 @@ Key goals:
 
 - 2025-08-12T13:20:00Z — Spun off from task-8 after removing residual admission hook resources and deciding to finalize remediation separately.
 - 2025-08-12T13:25:00Z — Documented plan to disable admission webhooks and pre-seed CRDs via server-side apply.
+- 2025-08-12T16:12:16Z — Set status to In Progress; created docs/observability.md entry-point and prepared YAML changes to disable admission webhooks; proceeding per plan.
 
 ## Decisions Made
 
