@@ -1,8 +1,8 @@
-replicaCount: 1
+replicaCount: 4
 
 image:
   repository: ghcr.io/mrthehavok/sample-api
-  tag: "0.2.0"
+  tag: "v0.2.1"
   pullPolicy: Always
 
 imagePullSecrets: []
@@ -65,9 +65,9 @@ metrics:
 
 rollouts:
   enabled: true
-  strategy: blueGreen # Options: blueGreen | canary
+  strategy: canary # Options: blueGreen | canary
   canary:
-    enabled: false
+    enabled: true
     trafficRouting:
       nginx:
         stableIngress: "sample-api"
@@ -79,7 +79,7 @@ rollouts:
       - setWeight: 20
       - pause: {}
   blueGreen:
-    enabled: true
+    enabled: false
     autoPromotionEnabled: false
     autoPromotionSeconds: 0
   rollbackWindow:
