@@ -1,7 +1,7 @@
 ---
 id: task-9
 title: "Test progressive delivery (blue-green and canary)"
-status: "To Do"
+status: "In Progress"
 depends_on: ["task-8", "task-10"]
 created: 2025-08-09
 updated: 2025-08-12
@@ -42,6 +42,8 @@ Test the full progressive delivery workflow for the sample-api application using
 ## Session History
 
 <!-- Update with timestamps, commands, and outcomes for each test -->
+
+- 2025-08-12T15:51:40+02:00: Session started on branch feat/task-9-progressive-delivery; environment: local Minikube; Argo Rollouts dashboard enabled; release scope: build and push v2 image to GHCR; monitoring via "kubectl argo rollouts --watch" and Rollouts dashboard; Grafana/Prometheus validation is non-blocking and will be cross-checked per task-10.
 
 ## Decisions Made
 
