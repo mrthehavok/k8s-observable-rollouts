@@ -37,7 +37,6 @@ This task establishes the foundation for context7 MCP integration and ensures re
 
 ## Decisions Made
 
-- Using [`/.audit/2025/08/`](../../.audit/2025/08/) directory structure per AR-02 archival standards
 - Initial rules defined to guide audit and remediation:
   - All documentation must align with context7.json values (title, description, folders)
   - Do not reference deprecated paths or modules removed from context7.json
@@ -51,7 +50,6 @@ This task establishes the foundation for context7 MCP integration and ensures re
 Expected files to be created/modified:
 
 - [`context7.json`](../../context7.json) (new)
-- [`.audit/2025/08/context7-audit.md`](../../.audit/2025/08/context7-audit.md) (new)
 - [`.gitignore`](../../.gitignore) (potentially updated per MCP-01)
 - Documentation files (potentially updated for consistency)
 - This task file (status updates)
