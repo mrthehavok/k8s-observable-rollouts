@@ -1,0 +1,23 @@
+{
+    "$schema": "https://context7.com/schema/context7.json",
+    "projectTitle": "Kubernetes Observable Rollouts on Minikube",
+    "description": "End-to-end local environment for GitOps and progressive delivery using Minikube, Argo CD, Argo Rollouts, and a sample FastAPI service.",
+    "folders": [
+        "apps",
+        "charts",
+        "docs",
+        "infrastructure",
+        "scripts",
+        "backlog"
+    ],
+    "excludeFolders": [],
+    "excludeFiles": [],
+    "rules": [
+        "All documentation must align with context7.json values (title, description, folders).",
+        "Do not reference deprecated paths or modules removed from context7.json.",
+        "Prefer YAML comments with # and avoid outdated HEREDOCs where jsonencode/yamlencode fits (see 04_terraform_standards.md TF-FR).",
+        "No secrets committed; adhere to SP-* rules; update .gitignore if needed.",
+        "If MCP tools are added/changed, update context7.json accordingly (MCP-01, MCP-03)."
+    ],
+    "previousVersions": []
+}
